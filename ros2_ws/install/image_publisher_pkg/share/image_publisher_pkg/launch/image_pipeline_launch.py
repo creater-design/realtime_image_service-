@@ -1,0 +1,1 @@
+/home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/launch/image_pipeline_launch.py

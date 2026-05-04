@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/image_file_publisher" "/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/ros2_tcp_client_node" "TARGETS" "image_file_publisher" "ros2_tcp_client_node" "DESTINATION" "lib/image_publisher_pkg")

@@ -1,0 +1,10 @@
+/home/wzq/MyProject/realtime_image_service/install/bin/image_server
+/home/wzq/MyProject/realtime_image_service/install/bin/image_client
+/home/wzq/MyProject/realtime_image_service/install/lib/librealtime_common.a
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/tcp_image_client.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/image_codec.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/image_processor.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/protocol.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/cuda_kernels.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/image_tcp_server.hpp
+/home/wzq/MyProject/realtime_image_service/install/include/realtime_image_service/logger.hpp

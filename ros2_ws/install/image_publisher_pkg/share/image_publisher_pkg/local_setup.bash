@@ -1,0 +1,1 @@
+/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/ament_cmake_environment_hooks/local_setup.bash

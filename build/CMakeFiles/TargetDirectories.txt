@@ -1,0 +1,9 @@
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/realtime_common.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/image_server.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/image_client.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/edit_cache.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/rebuild_cache.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/list_install_components.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/install.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/install/local.dir
+/home/wzq/MyProject/realtime_image_service/build/CMakeFiles/install/strip.dir
