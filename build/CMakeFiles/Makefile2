@@ -85,12 +85,12 @@ clean: CMakeFiles/image_client.dir/clean
 CMakeFiles/realtime_common.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=9,10,11,12,13 "Built target realtime_common"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=7,8,9,10,11,12,13,14 "Built target realtime_common"
 .PHONY : CMakeFiles/realtime_common.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/realtime_common.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 8
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/realtime_common.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 0
 .PHONY : CMakeFiles/realtime_common.dir/rule
@@ -111,12 +111,12 @@ CMakeFiles/realtime_common.dir/clean:
 CMakeFiles/image_server.dir/all: CMakeFiles/realtime_common.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_server.dir/build.make CMakeFiles/image_server.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_server.dir/build.make CMakeFiles/image_server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=5,6,7,8 "Built target image_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=4,5,6 "Built target image_server"
 .PHONY : CMakeFiles/image_server.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/image_server.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 11
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/image_server.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 0
 .PHONY : CMakeFiles/image_server.dir/rule
@@ -137,12 +137,12 @@ CMakeFiles/image_server.dir/clean:
 CMakeFiles/image_client.dir/all: CMakeFiles/realtime_common.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_client.dir/build.make CMakeFiles/image_client.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_client.dir/build.make CMakeFiles/image_client.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=1,2,3,4 "Built target image_client"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=1,2,3 "Built target image_client"
 .PHONY : CMakeFiles/image_client.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/image_client.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 11
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/image_client.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/build/CMakeFiles 0
 .PHONY : CMakeFiles/image_client.dir/rule

@@ -7,6 +7,8 @@
 #include "realtime_image_service/image_processor.hpp"
 #include "realtime_image_service/logger.hpp"
 #include "realtime_image_service/protocol.hpp"
+#include "realtime_image_service/obstacle_risk_analyzer.hpp"
+
 namespace ris
 {
     // muduo::net::EventLoop* loop 
@@ -116,15 +118,33 @@ namespace ris
         }
         request_metrics.decode_us = NowUs() - decode_begin;
 
-        cv::Mat output;
-        const bool ok = use_cuda_
-                      ? ProcessSobelCudaWithMetrics(input, &output, &process_metrics, &error_message)
-                      : ProcessSobelCpuWithMetrics(input, &output, &process_metrics, &error_message);
-        if (!ok) 
+        const int64_t preprocess_begin = NowUs();
+
+        cv::Mat gray;
+        cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
+
+        cv::Mat depth_norm;
+        gray.convertTo(depth_norm, CV_32FC1, 1.0 / 255.0);
+
+        // 临时伪深度：让暗区域更近、亮区域更远。
+        // 注意：这不是最终单目深度，只是为了先验证 ROI 风险分析链路。
+        depth_norm = 1.0f - depth_norm;
+
+        process_metrics.preprocess_us = NowUs() - preprocess_begin;
+
+        ObstacleRiskAnalyzer analyzer;
+        ObstacleResult obstacle_result;
+
+        const int64_t risk_begin = NowUs();
+        if (!analyzer.Analyze(depth_norm, &obstacle_result, &error_message))
         {
             SendError(conn, request_id, error_message);
             return;
         }
+        process_metrics.compute_us = NowUs() - risk_begin;
+
+        cv::Mat output = input.clone();
+        analyzer.DrawResult(obstacle_result, &output);
 
         std::vector<uint8_t> encoded;
         const int64_t encode_begin = NowUs();
@@ -141,9 +161,14 @@ namespace ris
         conn->send(packet.data(), static_cast<int>(packet.size()));
 
         RIS_LOG_INFO("request_id=" + std::to_string(request_id) +
-                    " input=" + std::to_string(input.cols) + "x" + std::to_string(input.rows) +
-                    " output_bytes=" + std::to_string(encoded.size()) + " " +
-                    BuildMetricsLog(request_metrics, process_metrics));
+            " input=" + std::to_string(input.cols) + "x" + std::to_string(input.rows) +
+            " output_bytes=" + std::to_string(encoded.size()) +
+            " risk_level=" + obstacle_result.risk_level +
+            " action=" + obstacle_result.suggest_action +
+            " near_ratio=" + std::to_string(obstacle_result.near_ratio) +
+            " confidence=" + std::to_string(obstacle_result.confidence) +
+            " " + BuildMetricsLog(request_metrics, process_metrics));
+
     }
 
     void ImageTcpServer::SendError(const muduo::net::TcpConnectionPtr& conn,

@@ -7,11 +7,11 @@ CUDA_DEFINES = -DRIS_ENABLE_CUDA=1
 
 CUDA_INCLUDES = --options-file CMakeFiles/realtime_common.dir/includes_CUDA.rsp
 
-CUDA_FLAGS = -O3 -DNDEBUG -std=c++14 "--generate-code=arch=compute_52,code=[compute_52,sm_52]" -Xcompiler=-fPIC -Wall -Wextra -Wpedantic --allow-unsupported-compiler
+CUDA_FLAGS = -O3 -DNDEBUG -std=c++14 "--generate-code=arch=compute_52,code=[compute_52,sm_52]"
 
 CXX_DEFINES = -DRIS_ENABLE_CUDA=1
 
 CXX_INCLUDES = -I/home/wzq/MyProject/realtime_image_service/include -isystem /usr/include/opencv4
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -fPIC -Wall -Wextra -Wpedantic
+CXX_FLAGS = -O3 -DNDEBUG -std=gnu++17
 

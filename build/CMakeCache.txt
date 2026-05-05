@@ -14,7 +14,7 @@
 # EXTERNAL cache entries
 ########################
 
-//Build CUDA image processor
+//Use CUDA processor
 BUILD_WITH_CUDA:BOOL=ON
 
 //Path to a program.
@@ -25,7 +25,7 @@ CMAKE_AR:FILEPATH=/usr/bin/ar
 
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=Release
+CMAKE_BUILD_TYPE:STRING=
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
@@ -221,9 +221,6 @@ CUDAToolkit_rt_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/librt.a
 
 //Path to a library.
 CUDA_CUDART:FILEPATH=/usr/lib/x86_64-linux-gnu/libcudart.so
-
-//Optional host compiler for nvcc, e.g. /usr/bin/g++-10
-CUDA_HOST_COMPILER_OVERRIDE:FILEPATH=
 
 //Path to a library.
 CUDA_OpenCL_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libOpenCL.so
@@ -429,17 +426,11 @@ CUDA_pcsamplingutil_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libpcsamplingutil
 //Path to a library.
 MUDUO_BASE_LIBRARY:FILEPATH=/usr/local/lib/libmuduo_base.a
 
-//Muduo build root containing lib/
-MUDUO_BUILD_ROOT:PATH=/home/wzq/Project/build/release-cpp11
-
 //Path to a file.
-MUDUO_INCLUDE_DIR:PATH=/usr/local/include/.
+MUDUO_INCLUDE_DIR:PATH=/usr/local/include
 
 //Path to a library.
 MUDUO_NET_LIBRARY:FILEPATH=/usr/local/lib/libmuduo_net.a
-
-//Muduo source root
-MUDUO_ROOT:PATH=/home/wzq/Project/muduo
 
 //The directory containing a CMake configuration file for OpenCV.
 OpenCV_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/opencv4

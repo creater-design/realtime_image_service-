@@ -28,6 +28,10 @@ public:
             // 以后收到图像消息时，请调用当前这个对象的 OnImage 函数，并把收到的消息传进去。
             std::bind(&Ros2TcpClientNode::OnImage, this, std::placeholders::_1)
             // [this](const sensor_msgs::msg::Image::SharedPtr msg) { OnImage(msg); }
+        );  
+
+        publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
+            "image_service/processed_image", 10
         );
     }
 
@@ -49,7 +53,7 @@ private:
             ris::TcpImageClient client(host_, port_);
             std::string error_message; // 用于返回错误信息
             
-            // 链接tcp服务器
+            // 链接 tcp 服务器
             if (!client.Connect(&error_message))
             {
                 RCLCPP_ERROR(this->get_logger(), "%s", error_message.c_str());
@@ -64,6 +68,14 @@ private:
                 RCLCPP_ERROR(this->get_logger(), "%s", error_message.c_str());
                 return;
             }
+
+            std_msgs::msg::Header header; // 创建一个 ROS 消息头
+            header.stamp = this->now(); // 设置时间戳为当前时间
+            // 如果原始消息的 frame_id 为空，则使用默认值 "camera"，否则使用原始消息的 frame_id
+            header.frame_id = msg->header.frame_id.empty() ? "camera" : msg->header.frame_id;
+            // 将处理后的图像转换为 ROS 消息格式，并发布到 "result_image" 主题
+            auto processed_msg = cv_bridge::CvImage(header, "bgr8", result).toImageMsg();
+            publisher_->publish(*processed_msg); /// 发布处理后的图像消息
 
             if (!cv::imwrite(output_path_, result)) // 保存结果图片
             {
@@ -93,6 +105,7 @@ private:
     uint32_t request_id_ = 0; // 请求 ID，可以根据需要生成唯一 ID
     // 订阅图像消息
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
 };
 
 int main(int argc, char const *argv[])

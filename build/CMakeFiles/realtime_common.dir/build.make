@@ -111,12 +111,54 @@ CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wzq/MyProject/realtime_image_service/src/common/image_processor.cpp -o CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.s
 
+CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o: CMakeFiles/realtime_common.dir/flags.make
+CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o: /home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp
+CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o: CMakeFiles/realtime_common.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o -MF CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o.d -o CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o -c /home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp
+
+CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp > CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.i
+
+CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp -o CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.s
+
+CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o: CMakeFiles/realtime_common.dir/flags.make
+CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o: /home/wzq/MyProject/realtime_image_service/src/common/result_json.cpp
+CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o: CMakeFiles/realtime_common.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o -MF CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o.d -o CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o -c /home/wzq/MyProject/realtime_image_service/src/common/result_json.cpp
+
+CMakeFiles/realtime_common.dir/src/common/result_json.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/realtime_common.dir/src/common/result_json.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wzq/MyProject/realtime_image_service/src/common/result_json.cpp > CMakeFiles/realtime_common.dir/src/common/result_json.cpp.i
+
+CMakeFiles/realtime_common.dir/src/common/result_json.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/realtime_common.dir/src/common/result_json.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wzq/MyProject/realtime_image_service/src/common/result_json.cpp -o CMakeFiles/realtime_common.dir/src/common/result_json.cpp.s
+
+CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o: CMakeFiles/realtime_common.dir/flags.make
+CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o: /home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp
+CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o: CMakeFiles/realtime_common.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o -MF CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o.d -o CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o -c /home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp
+
+CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp > CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.i
+
+CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp -o CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.s
+
 CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o: CMakeFiles/realtime_common.dir/flags.make
 CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o: CMakeFiles/realtime_common.dir/includes_CUDA.rsp
 CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o: /home/wzq/MyProject/realtime_image_service/cuda/sobel_processor.cu
 CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o: CMakeFiles/realtime_common.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CUDA object CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o"
-	/usr/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o -MF CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o.d -x cu -rdc=true -c /home/wzq/MyProject/realtime_image_service/cuda/sobel_processor.cu -o CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CUDA object CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o"
+	/usr/bin/nvcc -forward-unknown-to-host-compiler $(CUDA_DEFINES) $(CUDA_INCLUDES) $(CUDA_FLAGS) -MD -MT CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o -MF CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o.d -x cu -c /home/wzq/MyProject/realtime_image_service/cuda/sobel_processor.cu -o CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o
 
 CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CUDA source to CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.i"
@@ -131,6 +173,9 @@ realtime_common_OBJECTS = \
 "CMakeFiles/realtime_common.dir/src/common/protocol.cpp.o" \
 "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o" \
 "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o" \
+"CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o" \
+"CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o" \
+"CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o" \
 "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o"
 
 # External object files for target realtime_common
@@ -139,10 +184,13 @@ realtime_common_EXTERNAL_OBJECTS =
 librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/protocol.cpp.o
 librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o
 librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o
+librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o
+librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o
+librealtime_common.a: CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o
 librealtime_common.a: CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o
 librealtime_common.a: CMakeFiles/realtime_common.dir/build.make
 librealtime_common.a: CMakeFiles/realtime_common.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX static library librealtime_common.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX static library librealtime_common.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/realtime_common.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/realtime_common.dir/link.txt --verbose=$(VERBOSE)
 

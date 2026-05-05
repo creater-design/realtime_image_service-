@@ -1,5 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/image_server.dir/cmake_device_link.o"
   "CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o"
   "CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o.d"
   "CMakeFiles/image_server.dir/src/server/server_main.cpp.o"

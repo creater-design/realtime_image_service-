@@ -320,6 +320,30 @@ src/common/image_processor.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.s
 .PHONY : src/common/image_processor.cpp.s
 
+src/common/obstacle_risk_analyzer.o: src/common/obstacle_risk_analyzer.cpp.o
+.PHONY : src/common/obstacle_risk_analyzer.o
+
+# target to build an object file
+src/common/obstacle_risk_analyzer.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o
+.PHONY : src/common/obstacle_risk_analyzer.cpp.o
+
+src/common/obstacle_risk_analyzer.i: src/common/obstacle_risk_analyzer.cpp.i
+.PHONY : src/common/obstacle_risk_analyzer.i
+
+# target to preprocess a source file
+src/common/obstacle_risk_analyzer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.i
+.PHONY : src/common/obstacle_risk_analyzer.cpp.i
+
+src/common/obstacle_risk_analyzer.s: src/common/obstacle_risk_analyzer.cpp.s
+.PHONY : src/common/obstacle_risk_analyzer.s
+
+# target to generate assembly for a file
+src/common/obstacle_risk_analyzer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.s
+.PHONY : src/common/obstacle_risk_analyzer.cpp.s
+
 src/common/protocol.o: src/common/protocol.cpp.o
 .PHONY : src/common/protocol.o
 
@@ -343,6 +367,54 @@ src/common/protocol.s: src/common/protocol.cpp.s
 src/common/protocol.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/protocol.cpp.s
 .PHONY : src/common/protocol.cpp.s
+
+src/common/result_json.o: src/common/result_json.cpp.o
+.PHONY : src/common/result_json.o
+
+# target to build an object file
+src/common/result_json.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o
+.PHONY : src/common/result_json.cpp.o
+
+src/common/result_json.i: src/common/result_json.cpp.i
+.PHONY : src/common/result_json.i
+
+# target to preprocess a source file
+src/common/result_json.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_json.cpp.i
+.PHONY : src/common/result_json.cpp.i
+
+src/common/result_json.s: src/common/result_json.cpp.s
+.PHONY : src/common/result_json.s
+
+# target to generate assembly for a file
+src/common/result_json.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_json.cpp.s
+.PHONY : src/common/result_json.cpp.s
+
+src/common/result_payload.o: src/common/result_payload.cpp.o
+.PHONY : src/common/result_payload.o
+
+# target to build an object file
+src/common/result_payload.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o
+.PHONY : src/common/result_payload.cpp.o
+
+src/common/result_payload.i: src/common/result_payload.cpp.i
+.PHONY : src/common/result_payload.i
+
+# target to preprocess a source file
+src/common/result_payload.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.i
+.PHONY : src/common/result_payload.cpp.i
+
+src/common/result_payload.s: src/common/result_payload.cpp.s
+.PHONY : src/common/result_payload.s
+
+# target to generate assembly for a file
+src/common/result_payload.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.s
+.PHONY : src/common/result_payload.cpp.s
 
 src/server/image_tcp_server.o: src/server/image_tcp_server.cpp.o
 .PHONY : src/server/image_tcp_server.o
@@ -422,9 +494,18 @@ help:
 	@echo "... src/common/image_processor.o"
 	@echo "... src/common/image_processor.i"
 	@echo "... src/common/image_processor.s"
+	@echo "... src/common/obstacle_risk_analyzer.o"
+	@echo "... src/common/obstacle_risk_analyzer.i"
+	@echo "... src/common/obstacle_risk_analyzer.s"
 	@echo "... src/common/protocol.o"
 	@echo "... src/common/protocol.i"
 	@echo "... src/common/protocol.s"
+	@echo "... src/common/result_json.o"
+	@echo "... src/common/result_json.i"
+	@echo "... src/common/result_json.s"
+	@echo "... src/common/result_payload.o"
+	@echo "... src/common/result_payload.i"
+	@echo "... src/common/result_payload.s"
 	@echo "... src/server/image_tcp_server.o"
 	@echo "... src/server/image_tcp_server.i"
 	@echo "... src/server/image_tcp_server.s"

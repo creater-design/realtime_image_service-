@@ -452,4 +452,5 @@ CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o: \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/image_codec.hpp \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/logger.hpp \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/protocol.hpp \
- /usr/include/c++/11/optional
+ /usr/include/c++/11/optional \
+ /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/obstacle_risk_analyzer.hpp

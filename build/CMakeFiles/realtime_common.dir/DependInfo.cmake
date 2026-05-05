@@ -11,7 +11,10 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/wzq/MyProject/realtime_image_service/cuda/sobel_processor.cu" "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o" "gcc" "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/image_codec.cpp" "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/image_processor.cpp" "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o.d"
+  "/home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp" "CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp" "CMakeFiles/realtime_common.dir/src/common/protocol.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/protocol.cpp.o.d"
+  "/home/wzq/MyProject/realtime_image_service/src/common/result_json.cpp" "CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/result_json.cpp.o.d"
+  "/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp" "CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/result_payload.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

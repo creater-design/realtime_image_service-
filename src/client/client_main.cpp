@@ -10,7 +10,7 @@
 int main(int argc, char* argv[])
 { 
     std::string host = "127.0.0.1";
-    uint16_t port = 9000;
+    uint16_t port = 9999;
     std::string input_path = "samples/test.jpg";
     std::string output_path = "samples/result.jpg";
     // 解析命令行参数，覆盖默认的服务器地址、端口、输入输出图片路径等配置项。

@@ -6,5 +6,5 @@ CXX_DEFINES = -DRIS_ENABLE_CUDA=1
 
 CXX_INCLUDES = -I/home/wzq/MyProject/realtime_image_service/include -isystem /usr/include/opencv4
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
+CXX_FLAGS = -O3 -DNDEBUG -std=gnu++17
 

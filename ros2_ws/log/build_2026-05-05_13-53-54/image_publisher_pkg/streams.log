@@ -1,0 +1,58 @@
+[0.009s] Invoking command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg -DCMAKE_INSTALL_PREFIX=/home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg
+[0.014s] -- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.134s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.139s] -- Found rclcpp: 16.0.17 (/opt/ros/humble/share/rclcpp/cmake)
+[0.520s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.522s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.527s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.536s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.545s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.571s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.572s] -- Found rmw_cyclonedds_cpp: 1.3.4 (/opt/ros/humble/share/rmw_cyclonedds_cpp/cmake)
+[0.586s] -- Using RMW implementation 'rmw_cyclonedds_cpp' as default
+[0.632s] -- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+[0.658s] -- Found cv_bridge: 3.2.1 (/opt/ros/humble/share/cv_bridge/cmake)
+[0.664s] -- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+[0.710s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[0.710s] -- Configured cppcheck include dirs: /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/include;/home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/../../../include
+[0.710s] -- Configured cppcheck exclude dirs and/or files: 
+[0.710s] -- Added test 'flake8' to check Python code syntax and style conventions
+[0.710s] -- Added test 'lint_cmake' to check CMake code style
+[0.711s] -- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+[0.711s] -- Added test 'uncrustify' to check C / C++ code style
+[0.711s] -- Configured uncrustify additional arguments: 
+[0.711s] -- Added test 'xmllint' to check XML markup files
+[0.712s] -- Configuring done (0.7s)
+[0.727s] -- Generating done (0.0s)
+[0.731s] -- Build files have been written to: /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg
+[0.738s] Invoked command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg -DCMAKE_INSTALL_PREFIX=/home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg
+[0.739s] Invoking command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake --build /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg -- -j8 -l8
+[0.758s] [ 28%] Built target image_file_publisher
+[0.760s] [ 42%] [32mBuilding CXX object CMakeFiles/ros2_tcp_client_node.dir/src/ros2_tcp_client_node.cpp.o[0m
+[8.136s] [ 57%] [32m[1mLinking CXX executable ros2_tcp_client_node[0m
+[8.739s] [100%] Built target ros2_tcp_client_node
+[8.742s] Invoked command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake --build /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg -- -j8 -l8
+[8.747s] Invoking command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake --install /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg
+[8.749s] -- Install configuration: ""
+[8.749s] -- Execute custom install script
+[8.749s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/lib/image_publisher_pkg/image_file_publisher
+[8.749s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/lib/image_publisher_pkg/ros2_tcp_client_node
+[8.749s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/launch/__pycache__/image_pipeline_launch.cpython-310.pyc
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/launch/__pycache__/image_pipeline_launch.cpython-313.pyc
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/launch/image_pipeline_launch.py
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/ament_index/resource_index/package_run_dependencies/image_publisher_pkg
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/ament_index/resource_index/parent_prefix_path/image_publisher_pkg
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/environment/ament_prefix_path.sh
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/environment/ament_prefix_path.dsv
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/environment/path.sh
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/environment/path.dsv
+[8.750s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/local_setup.bash
+[8.751s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/local_setup.sh
+[8.751s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/local_setup.zsh
+[8.751s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/local_setup.dsv
+[8.751s] -- Symlinking: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/package.dsv
+[8.753s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/ament_index/resource_index/packages/image_publisher_pkg
+[8.753s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/cmake/image_publisher_pkgConfig.cmake
+[8.753s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/cmake/image_publisher_pkgConfig-version.cmake
+[8.753s] -- Up-to-date symlink: /home/wzq/MyProject/realtime_image_service/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/package.xml
+[8.755s] Invoked command in '/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /opt/cmake-3.27.9/bin/cmake --install /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg

@@ -105,85 +105,6 @@ image_server_OBJECTS = \
 # External object files for target image_server
 image_server_EXTERNAL_OBJECTS =
 
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/src/server/server_main.cpp.o
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/build.make
-CMakeFiles/image_server.dir/cmake_device_link.o: librealtime_common.a
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/local/lib/libmuduo_net.a
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/local/lib/libmuduo_base.a
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_stitching.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_alphamat.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_aruco.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_barcode.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_bgsegm.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_bioinspired.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_ccalib.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_dnn_objdetect.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_dnn_superres.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_dpm.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_face.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_freetype.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_fuzzy.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_hdf.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_hfs.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_img_hash.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_intensity_transform.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_line_descriptor.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_mcc.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_quality.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_rapid.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_reg.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_rgbd.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_saliency.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_shape.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_stereo.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_structured_light.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_phase_unwrapping.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_superres.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_optflow.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_surface_matching.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_tracking.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_highgui.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_datasets.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_plot.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_text.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_ml.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_videostab.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_videoio.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_viz.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_wechat_qrcode.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_ximgproc.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_video.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_xobjdetect.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_objdetect.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_calib3d.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_dnn.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_features2d.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_flann.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_xphoto.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_photo.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libopencv_core.so.4.5.4d
-CMakeFiles/image_server.dir/cmake_device_link.o: /usr/lib/x86_64-linux-gnu/libcudart.so
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/deviceLinkLibs.rsp
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/deviceObjects1.rsp
-CMakeFiles/image_server.dir/cmake_device_link.o: CMakeFiles/image_server.dir/dlink.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CUDA device code CMakeFiles/image_server.dir/cmake_device_link.o"
-	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/image_server.dir/dlink.txt --verbose=$(VERBOSE)
-
-# Rule to build all files generated by this target.
-CMakeFiles/image_server.dir/build: CMakeFiles/image_server.dir/cmake_device_link.o
-.PHONY : CMakeFiles/image_server.dir/build
-
-# Object files for target image_server
-image_server_OBJECTS = \
-"CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o" \
-"CMakeFiles/image_server.dir/src/server/server_main.cpp.o"
-
-# External object files for target image_server
-image_server_EXTERNAL_OBJECTS =
-
 image_server: CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o
 image_server: CMakeFiles/image_server.dir/src/server/server_main.cpp.o
 image_server: CMakeFiles/image_server.dir/build.make
@@ -245,9 +166,8 @@ image_server: /usr/lib/x86_64-linux-gnu/libopencv_photo.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libopencv_core.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libcudart.so
-image_server: CMakeFiles/image_server.dir/cmake_device_link.o
 image_server: CMakeFiles/image_server.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable image_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable image_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/image_server.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
