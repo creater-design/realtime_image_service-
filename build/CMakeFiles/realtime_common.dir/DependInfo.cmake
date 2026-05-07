@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/wzq/MyProject/realtime_image_service/cuda/sobel_processor.cu" "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o" "gcc" "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o.d"
+  "/home/wzq/MyProject/realtime_image_service/src/common/depth_estimator.cpp" "CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/image_codec.cpp" "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/image_processor.cpp" "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o.d"
   "/home/wzq/MyProject/realtime_image_service/src/common/obstacle_risk_analyzer.cpp" "CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o" "gcc" "CMakeFiles/realtime_common.dir/src/common/obstacle_risk_analyzer.cpp.o.d"

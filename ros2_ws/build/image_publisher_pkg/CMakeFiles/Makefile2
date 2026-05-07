@@ -65,6 +65,7 @@ CMAKE_BINARY_DIR = /home/wzq/MyProject/realtime_image_service/ros2_ws/build/imag
 # The main recursive "all" target.
 all: CMakeFiles/image_file_publisher.dir/all
 all: CMakeFiles/ros2_tcp_client_node.dir/all
+all: CMakeFiles/safety_controller_node.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -76,6 +77,7 @@ clean: CMakeFiles/uninstall.dir/clean
 clean: CMakeFiles/image_publisher_pkg_uninstall.dir/clean
 clean: CMakeFiles/image_file_publisher.dir/clean
 clean: CMakeFiles/ros2_tcp_client_node.dir/clean
+clean: CMakeFiles/safety_controller_node.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -163,12 +165,12 @@ CMakeFiles/image_file_publisher.dir/clean:
 CMakeFiles/ros2_tcp_client_node.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles --progress-num=3,4,5,6,7 "Built target ros2_tcp_client_node"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles --progress-num=3,4,5,6,7,8 "Built target ros2_tcp_client_node"
 .PHONY : CMakeFiles/ros2_tcp_client_node.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/ros2_tcp_client_node.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles 6
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/ros2_tcp_client_node.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles 0
 .PHONY : CMakeFiles/ros2_tcp_client_node.dir/rule
@@ -181,6 +183,32 @@ ros2_tcp_client_node: CMakeFiles/ros2_tcp_client_node.dir/rule
 CMakeFiles/ros2_tcp_client_node.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/clean
 .PHONY : CMakeFiles/ros2_tcp_client_node.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/safety_controller_node.dir
+
+# All Build rule for target.
+CMakeFiles/safety_controller_node.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles --progress-num=9,10 "Built target safety_controller_node"
+.PHONY : CMakeFiles/safety_controller_node.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/safety_controller_node.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/safety_controller_node.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/CMakeFiles 0
+.PHONY : CMakeFiles/safety_controller_node.dir/rule
+
+# Convenience name for target.
+safety_controller_node: CMakeFiles/safety_controller_node.dir/rule
+.PHONY : safety_controller_node
+
+# clean rule for target.
+CMakeFiles/safety_controller_node.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/clean
+.PHONY : CMakeFiles/safety_controller_node.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

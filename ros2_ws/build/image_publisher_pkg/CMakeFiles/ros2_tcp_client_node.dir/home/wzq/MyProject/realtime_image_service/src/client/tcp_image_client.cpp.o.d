@@ -376,4 +376,5 @@ CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/sr
  /usr/include/opencv4/opencv2/video/background_segm.hpp \
  /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/../../../include/realtime_image_service/image_codec.hpp \
  /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/../../../include/realtime_image_service/protocol.hpp \
- /usr/include/c++/11/optional
+ /usr/include/c++/11/optional \
+ /home/wzq/MyProject/realtime_image_service/ros2_ws/src/image_publisher_pkg/../../../include/realtime_image_service/result_payload.hpp

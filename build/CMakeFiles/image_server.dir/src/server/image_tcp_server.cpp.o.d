@@ -450,7 +450,10 @@ CMakeFiles/image_server.dir/src/server/image_tcp_server.cpp.o: \
  /usr/local/include/muduo/base/Atomic.h \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/image_processor.hpp \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/image_codec.hpp \
+ /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/depth_estimator.hpp \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/logger.hpp \
  /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/protocol.hpp \
  /usr/include/c++/11/optional \
- /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/obstacle_risk_analyzer.hpp
+ /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/obstacle_risk_analyzer.hpp \
+ /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/result_json.hpp \
+ /home/wzq/MyProject/realtime_image_service/include/realtime_image_service/result_payload.hpp

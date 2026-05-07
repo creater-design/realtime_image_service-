@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/image_codec.cpp.o.d"
   "CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp.o"
   "CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp.o.d"
+  "CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o"
+  "CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o.d"
   "CMakeFiles/ros2_tcp_client_node.dir/src/ros2_tcp_client_node.cpp.o"
   "CMakeFiles/ros2_tcp_client_node.dir/src/ros2_tcp_client_node.cpp.o.d"
   "ros2_tcp_client_node"

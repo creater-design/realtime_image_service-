@@ -15,7 +15,7 @@
 ########################
 
 //Use CUDA processor
-BUILD_WITH_CUDA:BOOL=ON
+BUILD_WITH_CUDA:BOOL=OFF
 
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line

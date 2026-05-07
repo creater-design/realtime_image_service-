@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o"
-  "CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o.d"
+  "CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.o"
+  "CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.o.d"
   "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o"
   "CMakeFiles/realtime_common.dir/src/common/image_codec.cpp.o.d"
   "CMakeFiles/realtime_common.dir/src/common/image_processor.cpp.o"
@@ -18,6 +18,6 @@ file(REMOVE_RECURSE
 )
 
 # Per-language clean rules from dependency scanning.
-foreach(lang CUDA CXX)
+foreach(lang CXX)
   include(CMakeFiles/realtime_common.dir/cmake_clean_${lang}.cmake OPTIONAL)
 endforeach()

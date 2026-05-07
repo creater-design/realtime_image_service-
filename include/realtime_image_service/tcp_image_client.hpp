@@ -22,6 +22,21 @@ namespace ris
                         cv::Mat* output,
                         uint32_t request_id,
                         std::string* error_message);
+        
+        // 发送图片和 json
+        bool SendImageWithResult(const cv::Mat& input,
+                         cv::Mat* output,
+                         std::string* result_json,
+                         uint32_t request_id,
+                         std::string* error_message);
+
+        bool SendImageWithResultAndDepth(const cv::Mat& input,
+                         cv::Mat* output,
+                         cv::Mat* depth_output,
+                         std::string* result_json,
+                         uint32_t request_id,
+                         std::string* error_message);
+
 
     private:
         // 发送所有数据，直到全部发送成功或发生错误

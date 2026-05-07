@@ -716,4 +716,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/image_publisher_pkg_uninstall.dir/DependInfo.cmake"
   "CMakeFiles/image_file_publisher.dir/DependInfo.cmake"
   "CMakeFiles/ros2_tcp_client_node.dir/DependInfo.cmake"
+  "CMakeFiles/safety_controller_node.dir/DependInfo.cmake"
   )

@@ -200,30 +200,6 @@ image_client/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_client.dir/build.make CMakeFiles/image_client.dir/build
 .PHONY : image_client/fast
 
-cuda/sobel_processor.o: cuda/sobel_processor.cu.o
-.PHONY : cuda/sobel_processor.o
-
-# target to build an object file
-cuda/sobel_processor.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.o
-.PHONY : cuda/sobel_processor.cu.o
-
-cuda/sobel_processor.i: cuda/sobel_processor.cu.i
-.PHONY : cuda/sobel_processor.i
-
-# target to preprocess a source file
-cuda/sobel_processor.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.i
-.PHONY : cuda/sobel_processor.cu.i
-
-cuda/sobel_processor.s: cuda/sobel_processor.cu.s
-.PHONY : cuda/sobel_processor.s
-
-# target to generate assembly for a file
-cuda/sobel_processor.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/cuda/sobel_processor.cu.s
-.PHONY : cuda/sobel_processor.cu.s
-
 src/client/client_main.o: src/client/client_main.cpp.o
 .PHONY : src/client/client_main.o
 
@@ -271,6 +247,30 @@ src/client/tcp_image_client.s: src/client/tcp_image_client.cpp.s
 src/client/tcp_image_client.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/image_client.dir/build.make CMakeFiles/image_client.dir/src/client/tcp_image_client.cpp.s
 .PHONY : src/client/tcp_image_client.cpp.s
+
+src/common/depth_estimator.o: src/common/depth_estimator.cpp.o
+.PHONY : src/common/depth_estimator.o
+
+# target to build an object file
+src/common/depth_estimator.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.o
+.PHONY : src/common/depth_estimator.cpp.o
+
+src/common/depth_estimator.i: src/common/depth_estimator.cpp.i
+.PHONY : src/common/depth_estimator.i
+
+# target to preprocess a source file
+src/common/depth_estimator.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.i
+.PHONY : src/common/depth_estimator.cpp.i
+
+src/common/depth_estimator.s: src/common/depth_estimator.cpp.s
+.PHONY : src/common/depth_estimator.s
+
+# target to generate assembly for a file
+src/common/depth_estimator.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/realtime_common.dir/build.make CMakeFiles/realtime_common.dir/src/common/depth_estimator.cpp.s
+.PHONY : src/common/depth_estimator.cpp.s
 
 src/common/image_codec.o: src/common/image_codec.cpp.o
 .PHONY : src/common/image_codec.o
@@ -479,15 +479,15 @@ help:
 	@echo "... image_client"
 	@echo "... image_server"
 	@echo "... realtime_common"
-	@echo "... cuda/sobel_processor.o"
-	@echo "... cuda/sobel_processor.i"
-	@echo "... cuda/sobel_processor.s"
 	@echo "... src/client/client_main.o"
 	@echo "... src/client/client_main.i"
 	@echo "... src/client/client_main.s"
 	@echo "... src/client/tcp_image_client.o"
 	@echo "... src/client/tcp_image_client.i"
 	@echo "... src/client/tcp_image_client.s"
+	@echo "... src/common/depth_estimator.o"
+	@echo "... src/common/depth_estimator.i"
+	@echo "... src/common/depth_estimator.s"
 	@echo "... src/common/image_codec.o"
 	@echo "... src/common/image_codec.i"
 	@echo "... src/common/image_codec.s"

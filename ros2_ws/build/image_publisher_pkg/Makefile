@@ -223,6 +223,19 @@ ros2_tcp_client_node/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/build
 .PHONY : ros2_tcp_client_node/fast
 
+#=============================================================================
+# Target rules for targets named safety_controller_node
+
+# Build rule for target.
+safety_controller_node: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 safety_controller_node
+.PHONY : safety_controller_node
+
+# fast build rule for target.
+safety_controller_node/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/build
+.PHONY : safety_controller_node/fast
+
 home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.o: home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.cpp.o
 .PHONY : home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.o
 
@@ -295,6 +308,30 @@ home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp.s
 .PHONY : home/wzq/MyProject/realtime_image_service/src/common/protocol.cpp.s
 
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.o: home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.o
+
+# target to build an object file
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.o
+
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.i: home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.i
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.i
+
+# target to preprocess a source file
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.i
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.i
+
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.s: home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.s
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.s
+
+# target to generate assembly for a file
+home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.s
+.PHONY : home/wzq/MyProject/realtime_image_service/src/common/result_payload.cpp.s
+
 src/image_file_publisher.o: src/image_file_publisher.cpp.o
 .PHONY : src/image_file_publisher.o
 
@@ -343,6 +380,30 @@ src/ros2_tcp_client_node.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ros2_tcp_client_node.dir/build.make CMakeFiles/ros2_tcp_client_node.dir/src/ros2_tcp_client_node.cpp.s
 .PHONY : src/ros2_tcp_client_node.cpp.s
 
+src/safety_controller_node.o: src/safety_controller_node.cpp.o
+.PHONY : src/safety_controller_node.o
+
+# target to build an object file
+src/safety_controller_node.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/src/safety_controller_node.cpp.o
+.PHONY : src/safety_controller_node.cpp.o
+
+src/safety_controller_node.i: src/safety_controller_node.cpp.i
+.PHONY : src/safety_controller_node.i
+
+# target to preprocess a source file
+src/safety_controller_node.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/src/safety_controller_node.cpp.i
+.PHONY : src/safety_controller_node.cpp.i
+
+src/safety_controller_node.s: src/safety_controller_node.cpp.s
+.PHONY : src/safety_controller_node.s
+
+# target to generate assembly for a file
+src/safety_controller_node.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/safety_controller_node.dir/build.make CMakeFiles/safety_controller_node.dir/src/safety_controller_node.cpp.s
+.PHONY : src/safety_controller_node.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -360,6 +421,7 @@ help:
 	@echo "... uninstall"
 	@echo "... image_file_publisher"
 	@echo "... ros2_tcp_client_node"
+	@echo "... safety_controller_node"
 	@echo "... home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.o"
 	@echo "... home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.i"
 	@echo "... home/wzq/MyProject/realtime_image_service/src/client/tcp_image_client.s"
@@ -369,12 +431,18 @@ help:
 	@echo "... home/wzq/MyProject/realtime_image_service/src/common/protocol.o"
 	@echo "... home/wzq/MyProject/realtime_image_service/src/common/protocol.i"
 	@echo "... home/wzq/MyProject/realtime_image_service/src/common/protocol.s"
+	@echo "... home/wzq/MyProject/realtime_image_service/src/common/result_payload.o"
+	@echo "... home/wzq/MyProject/realtime_image_service/src/common/result_payload.i"
+	@echo "... home/wzq/MyProject/realtime_image_service/src/common/result_payload.s"
 	@echo "... src/image_file_publisher.o"
 	@echo "... src/image_file_publisher.i"
 	@echo "... src/image_file_publisher.s"
 	@echo "... src/ros2_tcp_client_node.o"
 	@echo "... src/ros2_tcp_client_node.i"
 	@echo "... src/ros2_tcp_client_node.s"
+	@echo "... src/safety_controller_node.o"
+	@echo "... src/safety_controller_node.i"
+	@echo "... src/safety_controller_node.s"
 .PHONY : help
 
 

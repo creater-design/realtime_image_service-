@@ -25,7 +25,10 @@ namespace ris
     public:
         ImageTcpServer(muduo::net::EventLoop* loop,
                        const muduo::net::InetAddress& address,
-                       bool use_cuda);
+                       bool use_cuda,
+                       bool use_depth_server,
+                       std::string depth_host,
+                       uint16_t depth_port);
 
         ~ImageTcpServer() = default;
         void start();
@@ -51,5 +54,8 @@ namespace ris
 
         muduo::net::TcpServer server_;
         bool use_cuda_ = true;
+        bool use_depth_server_ = true;
+        std::string depth_host_;
+        uint16_t depth_port_ = 18080;
     };
 } // namespace ris

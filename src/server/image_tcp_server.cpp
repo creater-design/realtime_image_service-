@@ -5,12 +5,47 @@
 #include "realtime_image_service/image_tcp_server.hpp"
 #include "realtime_image_service/image_codec.hpp"
 #include "realtime_image_service/image_processor.hpp"
+#include "realtime_image_service/depth_estimator.hpp"
 #include "realtime_image_service/logger.hpp"
 #include "realtime_image_service/protocol.hpp"
 #include "realtime_image_service/obstacle_risk_analyzer.hpp"
+#include "realtime_image_service/result_json.hpp"
+#include "realtime_image_service/result_payload.hpp"
 
 namespace ris
 {
+    namespace
+    {
+        cv::Mat BuildDepthVisualization(const cv::Mat& depth_norm,
+                                        const ObstacleResult& obstacle_result)
+        {
+            cv::Mat depth_float;
+            if (depth_norm.type() == CV_32FC1)
+            {
+                depth_float = depth_norm;
+            }
+            else
+            {
+                depth_norm.convertTo(depth_float, CV_32FC1, 1.0 / 255.0);
+            }
+
+            cv::Mat display = 1.0f - depth_float;
+            cv::patchNaNs(display, 0.0);
+            cv::threshold(display, display, 1.0, 1.0, cv::THRESH_TRUNC);
+            cv::threshold(display, display, 0.0, 0.0, cv::THRESH_TOZERO);
+
+            cv::Mat depth_u8;
+            display.convertTo(depth_u8, CV_8UC1, 255.0);
+
+            cv::Mat depth_color;
+            cv::applyColorMap(depth_u8, depth_color, cv::COLORMAP_TURBO);
+
+            ObstacleRiskAnalyzer analyzer;
+            analyzer.DrawResult(obstacle_result, &depth_color);
+            return depth_color;
+        }
+    }
+
     // muduo::net::EventLoop* loop 
     // muduo 的事件循环：
     // 监听 socket 事件
@@ -19,9 +54,15 @@ namespace ris
     // 把事件分发给对应回调函数
     ImageTcpServer::ImageTcpServer(muduo::net::EventLoop* loop,
                                    const muduo::net::InetAddress& address, // 服务器要监听的地址和端口
-                                   bool use_cuda)
+                                   bool use_cuda,
+                                   bool use_depth_server,
+                                   std::string depth_host,
+                                   uint16_t depth_port)
     : server_(loop, address, "ImageTcpServer")
     , use_cuda_(use_cuda)
+    , use_depth_server_(use_depth_server)
+    , depth_host_(std::move(depth_host))
+    , depth_port_(depth_port)
     {
         // 以后只要有连接状态变化，就调用我这个对象的 onConnection 成员函数。
         server_.setConnectionCallback(
@@ -37,7 +78,9 @@ namespace ris
     void ImageTcpServer::start()
     {
         server_.start();
-        RIS_LOG_INFO(std::string("ImageTcpServer started on ") + (use_cuda_ ? "CUDA" : "CPU"));
+        RIS_LOG_INFO(std::string("ImageTcpServer started on ") + (use_cuda_ ? "CUDA" : "CPU") +
+                     " depth_backend=" +
+                     (use_depth_server_ ? (depth_host_ + ":" + std::to_string(depth_port_)) : "pseudo_depth"));
     }
 
     void ImageTcpServer::onConnection(const muduo::net::TcpConnectionPtr& conn)
@@ -118,19 +161,25 @@ namespace ris
         }
         request_metrics.decode_us = NowUs() - decode_begin;
 
-        const int64_t preprocess_begin = NowUs();
-
-        cv::Mat gray;
-        cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
-
         cv::Mat depth_norm;
-        gray.convertTo(depth_norm, CV_32FC1, 1.0 / 255.0);
-
-        // 临时伪深度：让暗区域更近、亮区域更远。
-        // 注意：这不是最终单目深度，只是为了先验证 ROI 风险分析链路。
-        depth_norm = 1.0f - depth_norm;
-
-        process_metrics.preprocess_us = NowUs() - preprocess_begin;
+        const int64_t depth_begin = NowUs();
+        if (use_depth_server_)
+        {
+            DepthEstimator depth_estimator(depth_host_, depth_port_);
+            if (!depth_estimator.EstimateDepth(input, &depth_norm, &error_message))
+            {
+                SendError(conn, request_id, error_message);
+                return;
+            }
+        }
+        else
+        {
+            cv::Mat gray;
+            cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
+            gray.convertTo(depth_norm, CV_32FC1, 1.0 / 255.0);
+            depth_norm = 1.0f - depth_norm;
+        }
+        process_metrics.preprocess_us = NowUs() - depth_begin;
 
         ObstacleRiskAnalyzer analyzer;
         ObstacleResult obstacle_result;
@@ -146,9 +195,18 @@ namespace ris
         cv::Mat output = input.clone();
         analyzer.DrawResult(obstacle_result, &output);
 
+        cv::Mat depth_visual = BuildDepthVisualization(depth_norm, obstacle_result);
+
         std::vector<uint8_t> encoded;
+        std::vector<uint8_t> depth_encoded;
         const int64_t encode_begin = NowUs();
         if (!EncodeJpeg(output, &encoded, 90, &error_message)) 
+        {
+            SendError(conn, request_id, error_message);
+            return;
+        }
+
+        if (!EncodeJpeg(depth_visual, &depth_encoded, 90, &error_message))
         {
             SendError(conn, request_id, error_message);
             return;
@@ -156,13 +214,25 @@ namespace ris
         request_metrics.encode_us = NowUs() - encode_begin;
         request_metrics.total_us = NowUs() - request_begin;
 
-        std::vector<uint8_t> packet = BuildPacket(MessageType::kImageResponse, request_id, encoded);
+        ImageServiceMetrics service_metrics;
+        service_metrics.backend = use_depth_server_ ? "depth_anything_v2" : "pseudo_depth";
+        service_metrics.decode_us = request_metrics.decode_us;
+        service_metrics.preprocess_us = process_metrics.preprocess_us;
+        service_metrics.risk_us = process_metrics.compute_us;
+        service_metrics.encode_us = request_metrics.encode_us;
+        service_metrics.total_us = request_metrics.total_us;
+
+        const std::string json = BuildObstacleResultJson(obstacle_result, service_metrics);
+        const std::vector<uint8_t> result_payload = PackResultPayloadWithDepth(json, encoded, depth_encoded);
+        
+        std::vector<uint8_t> packet = BuildPacket(MessageType::kImageResponse, request_id, result_payload);
         // packet.data() 返回 vector 底层连续内存的首地址。
         conn->send(packet.data(), static_cast<int>(packet.size()));
 
         RIS_LOG_INFO("request_id=" + std::to_string(request_id) +
             " input=" + std::to_string(input.cols) + "x" + std::to_string(input.rows) +
             " output_bytes=" + std::to_string(encoded.size()) +
+            " depth_bytes=" + std::to_string(depth_encoded.size()) +
             " risk_level=" + obstacle_result.risk_level +
             " action=" + obstacle_result.suggest_action +
             " near_ratio=" + std::to_string(obstacle_result.near_ratio) +

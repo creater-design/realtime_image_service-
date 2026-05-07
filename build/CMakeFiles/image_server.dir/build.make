@@ -165,7 +165,6 @@ image_server: /usr/lib/x86_64-linux-gnu/libopencv_xphoto.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libopencv_photo.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.4.5.4d
 image_server: /usr/lib/x86_64-linux-gnu/libopencv_core.so.4.5.4d
-image_server: /usr/lib/x86_64-linux-gnu/libcudart.so
 image_server: CMakeFiles/image_server.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/wzq/MyProject/realtime_image_service/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable image_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/image_server.dir/link.txt --verbose=$(VERBOSE)

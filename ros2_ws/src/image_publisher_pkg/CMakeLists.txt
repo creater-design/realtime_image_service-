@@ -10,7 +10,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -39,6 +42,7 @@ add_executable(image_file_publisher
   src/image_file_publisher.cpp
 )
 
+# 链接内部库
 ament_target_dependencies(
   image_file_publisher
   rclcpp
@@ -47,20 +51,7 @@ ament_target_dependencies(
   cv_bridge
 )
 
-target_link_libraries(
-  image_file_publisher
-  ${OpenCV_LIBS}
-)
-# ROS2 依赖绑定
-ament_target_dependencies(
-  image_file_publisher
-  rclcpp
-  sensor_msgs
-  std_msgs
-  cv_bridge
-)
-
-# OpenCV 依赖绑定
+# 链接外部库
 target_link_libraries(
   image_file_publisher
   ${OpenCV_LIBS}
@@ -71,6 +62,7 @@ add_executable(ros2_tcp_client_node
   ${RIS_ROOT}/src/client/tcp_image_client.cpp
   ${RIS_ROOT}/src/common/image_codec.cpp
   ${RIS_ROOT}/src/common/protocol.cpp
+  ${RIS_ROOT}/src/common/result_payload.cpp
 )
 
 ament_target_dependencies(
@@ -82,14 +74,26 @@ ament_target_dependencies(
 )
 
 target_link_libraries(
-  image_file_publisher
+  ros2_tcp_client_node
   ${OpenCV_LIBS}
+)
+
+add_executable(safety_controller_node
+  src/safety_controller_node.cpp
+)
+
+ament_target_dependencies(
+  safety_controller_node
+  rclcpp
+  std_msgs
+  geometry_msgs
 )
 
 install(
   TARGETS
     image_file_publisher
     ros2_tcp_client_node
+    safety_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

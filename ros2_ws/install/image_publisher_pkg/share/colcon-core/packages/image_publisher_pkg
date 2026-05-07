@@ -1,1 +1,1 @@
-cv_bridge:rclcpp:sensor_msgs
+cv_bridge:geometry_msgs:rclcpp:sensor_msgs:std_msgs

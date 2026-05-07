@@ -10,8 +10,18 @@ namespace ris
     std::vector<uint8_t> PackResultPayload(const std::string& json,
                                            const std::vector<uint8_t>& image_bytes);
 
+    std::vector<uint8_t> PackResultPayloadWithDepth(const std::string& json,
+                                                    const std::vector<uint8_t>& image_bytes,
+                                                    const std::vector<uint8_t>& depth_image_bytes);
+
     bool UnpackResultPayload(const std::vector<uint8_t>& payload,
                              std::string* json,
                              std::vector<uint8_t>* image_bytes,
                              std::string* error_message);
+
+    bool UnpackResultPayloadWithDepth(const std::vector<uint8_t>& payload,
+                                      std::string* json,
+                                      std::vector<uint8_t>* image_bytes,
+                                      std::vector<uint8_t>* depth_image_bytes,
+                                      std::string* error_message);
 }

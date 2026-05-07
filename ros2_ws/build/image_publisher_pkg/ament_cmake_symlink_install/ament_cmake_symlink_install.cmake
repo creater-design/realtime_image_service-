@@ -310,7 +310,7 @@ message(STATUS "Execute custom install script")
 
 # begin of custom install code
 
-# install("TARGETS" "image_file_publisher" "ros2_tcp_client_node" "DESTINATION" "lib/image_publisher_pkg")
+# install("TARGETS" "image_file_publisher" "ros2_tcp_client_node" "safety_controller_node" "DESTINATION" "lib/image_publisher_pkg")
 include("/home/wzq/MyProject/realtime_image_service/ros2_ws/build/image_publisher_pkg/ament_cmake_symlink_install_targets_0_${CMAKE_INSTALL_CONFIG_NAME}.cmake")
 
 # install(DIRECTORY "launch" "DESTINATION" "share/image_publisher_pkg")

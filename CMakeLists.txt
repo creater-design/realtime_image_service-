@@ -140,6 +140,7 @@ set(COMMON_SOURCES
   src/common/protocol.cpp
   src/common/image_codec.cpp
   src/common/image_processor.cpp
+  src/common/depth_estimator.cpp
   src/common/obstacle_risk_analyzer.cpp
   src/common/result_json.cpp
   src/common/result_payload.cpp

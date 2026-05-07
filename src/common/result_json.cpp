@@ -5,7 +5,29 @@
 
 namespace ris
 {
+    std::string BuildImageServiceMetricsJson(const ImageServiceMetrics& metrics)
+    {
+        std::ostringstream oss;
+
+        oss << "{";
+        oss << "\"backend\":\"" << metrics.backend << "\",";
+        oss << "\"decode_us\":" << metrics.decode_us << ",";
+        oss << "\"preprocess_us\":" << metrics.preprocess_us << ",";
+        oss << "\"risk_us\":" << metrics.risk_us << ",";
+        oss << "\"encode_us\":" << metrics.encode_us << ",";
+        oss << "\"total_us\":" << metrics.total_us;
+        oss << "}";
+
+        return oss.str();
+    }
+
     std::string BuildObstacleResultJson(const ObstacleResult& result)
+    {
+        return BuildObstacleResultJson(result, ImageServiceMetrics{});
+    }
+
+    std::string BuildObstacleResultJson(const ObstacleResult& result,
+                                        const ImageServiceMetrics& metrics)
     {
         std::ostringstream oss;
 
@@ -24,7 +46,8 @@ namespace ris
         oss << "\"y\":" << result.roi_y << ",";
         oss << "\"w\":" << result.roi_w << ",";
         oss << "\"h\":" << result.roi_h;
-        oss << "}";
+        oss << "},";
+        oss << "\"metrics\":" << BuildImageServiceMetricsJson(metrics);
         oss << "}";
 
         return oss.str();

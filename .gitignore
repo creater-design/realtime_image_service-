@@ -1,0 +1,32 @@
+# Build outputs
+build/
+install/
+log/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local third-party source and model weights
+Depth-Anything-V2-main/
+*.pth
+*.pt
+*.onnx
+*.engine
+
+# Runtime outputs
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

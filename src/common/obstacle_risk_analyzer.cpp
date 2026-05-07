@@ -562,6 +562,6 @@ namespace ris
                     cv::FONT_HERSHEY_SIMPLEX,
                     0.45,
                     color,
-                    1);
+                    2);
     }
 }

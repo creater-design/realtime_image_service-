@@ -10,6 +10,7 @@
 #include "realtime_image_service/tcp_image_client.hpp"
 #include "realtime_image_service/image_codec.hpp"
 #include "realtime_image_service/protocol.hpp"
+#include "realtime_image_service/result_payload.hpp"
 
 namespace ris
 {
@@ -156,78 +157,9 @@ namespace
                                uint32_t request_id,
                                std::string* error_message) 
     {
-        // 建立链接
-        if (sockfd_ < 0 && !Connect(error_message)) 
-        {
-            return false;
-        }
-        
-        // 图像编码压缩成 JPEG 格式，得到字节流
-        std::vector<uint8_t> encoded;
-        if (!EncodeJpeg(input, &encoded, 90, error_message)) 
-        {
-            return false;
-        }
-
-        // 构造协议包
-        std::vector<uint8_t> packet = BuildPacket(MessageType::kImageRequest, request_id, encoded);
-        // 发送协议包
-        if (!SendAll(packet.data(), packet.size(), error_message)) 
-        {
-            return false;
-        }
-        
-        // 接收响应头部（固定 16 字节）
-        std::vector<uint8_t> header_buf(kHeaderSize);
-        if (!RecvExact(header_buf.data(), header_buf.size(), error_message)) 
-        {
-            return false;
-        }
-
-        // 监测头部字节流是否合法，并从中解析出协议头部结构体
-        auto header_opt = DeserializeHeader(header_buf.data(), header_buf.size());
-        if (!header_opt.has_value()) 
-        {
-            if (error_message) 
-            {
-                *error_message = "invalid response header";
-            }
-            return false;
-        }
-        // 读取响应头部后
-        const MessageHeader header = header_opt.value();
-
-        std::vector<uint8_t> payload(header.payload_size);
-        // 如果有 payload，但没有成功把完整数据读出来，就直接返回失败。
-        if (header.payload_size > 0 && !RecvExact(payload.data(), payload.size(), error_message)) 
-        {
-            return false;
-        }
-
-        // 根据响应头部的消息类型，判断是错误响应
-        if (static_cast<MessageType>(header.msg_type) == MessageType::kErrorResponse) 
-        {
-            if (error_message) 
-            {
-                *error_message = std::string(payload.begin(), payload.end());
-            }
-            return false;
-        }
-        
-        // 判断响应头部的消息类型是否是预期的图片响应，如果不是，就返回错误。
-        if (static_cast<MessageType>(header.msg_type) != MessageType::kImageResponse) 
-        {
-            if (error_message) 
-            {
-                *error_message = "unexpected response msg_type";
-            }
-            return false;
-        }
-
-        // 将收到的字节流解码成图片数据，并存储在 output 指向的 cv::Mat 中。
-        return DecodeImage(payload, output, error_message);
+        std::string ignored_json;
+        return SendImageWithResult(input, output, &ignored_json, request_id, error_message);
     }
-
     bool TcpImageClient::SendAll(const uint8_t* data,
                              std::size_t size,
                              std::string* error_message) 
@@ -236,14 +168,26 @@ namespace
         std::size_t sent = 0;
         while (sent < size) 
         {
+            if (!WaitFdReady(sockfd_, POLLOUT, kSendTimeoutMs, error_message))
+            {
+                return false;
+            }
+
+            const std::size_t chunk_size = std::min(kSendChunkBytes, size - sent);
+
             // data + sent → 从“还没发的地方”开始发送，size - sent → 还剩多少字节没发送
             // 0	普通发送	默认
             // MSG_NOSIGNAL	防止崩溃   强烈推荐
             // MSG_DONTWAIT	 不阻塞	  高性能/异步
-            const ssize_t n = send(sockfd_, data + sent, size - sent, MSG_NOSIGNAL | MSG_DONTWAIT);
+            const ssize_t n = send(sockfd_, data + sent, chunk_size, MSG_NOSIGNAL | MSG_DONTWAIT);
             // n == 0 → 连接关闭
             // n < 0 → 出错（比如断网）
-            if (n <= 0) 
+            if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
+            {
+                continue;
+            }
+
+            if (n <= 0)
             {
                 if (error_message) 
                 {
@@ -260,19 +204,160 @@ namespace
                                std::size_t size,
                                std::string* error_message) 
     {
-            std::size_t received = 0;
-            while (received < size) {
-                const ssize_t n = recv(sockfd_, data + received, size - received, 0);
-                if (n <= 0) {
+        std::size_t received = 0;
+        while (received < size) 
+        {
+            if (!WaitFdReady(sockfd_, POLLIN, kRecvTimeoutMs, error_message))
+            {
+                return false;
+            }
+
+            const ssize_t n = recv(sockfd_, data + received, size - received, MSG_DONTWAIT);
+            if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
+            {
+                continue;
+            }
+
+            if (n <= 0) 
+            {
                 if (error_message) {
                     *error_message = std::string("recv failed: ") + std::strerror(errno);
                 }
                 return false;
-                }
-                received += static_cast<std::size_t>(n);
             }
-            return true;
+
+            received += static_cast<std::size_t>(n);
+        }
+        return true;
+    }
+
+    bool TcpImageClient::SendImageWithResult(const cv::Mat& input,
+                                            cv::Mat* output,
+                                            std::string* result_json,
+                                            uint32_t request_id,
+                                            std::string* error_message) 
+    {
+        cv::Mat ignored_depth_output;
+        return SendImageWithResultAndDepth(
+            input,
+            output,
+            &ignored_depth_output,
+            result_json,
+            request_id,
+            error_message
+        );
+    }
+
+    bool TcpImageClient::SendImageWithResultAndDepth(const cv::Mat& input,
+                                            cv::Mat* output,
+                                            cv::Mat* depth_output,
+                                            std::string* result_json,
+                                            uint32_t request_id,
+                                            std::string* error_message)
+    {
+        if (!output || !result_json)
+        {
+            if (error_message)
+            {
+                *error_message = "output or result_json pointer is null";
+            }
+            return false;
+        }
+
+        if (!depth_output)
+        {
+            if (error_message)
+            {
+                *error_message = "depth_output pointer is null";
+            }
+            return false;
+        }
+
+        result_json->clear();
+        depth_output->release();
+
+        if (sockfd_ < 0 && !Connect(error_message)) 
+        {
+            return false;
+        }
+
+        std::vector<uint8_t> encoded;
+        if (!EncodeJpeg(input, &encoded, 90, error_message)) 
+        {
+            return false;
+        }
+
+        std::vector<uint8_t> packet = BuildPacket(MessageType::kImageRequest, request_id, encoded);
+
+        if (!SendAll(packet.data(), packet.size(), error_message)) 
+        {
+            return false;
+        }
+
+        std::vector<uint8_t> header_buf(kHeaderSize);
+        if (!RecvExact(header_buf.data(), header_buf.size(), error_message)) 
+        {
+            return false;
+        }
+
+        auto header_opt = DeserializeHeader(header_buf.data(), header_buf.size());
+        if (!header_opt.has_value()) 
+        {
+            if (error_message)
+            {
+                *error_message = "invalid response header";
+            }
+            return false;
+        }
+
+        const MessageHeader header = header_opt.value();
+
+        std::vector<uint8_t> payload(header.payload_size);
+        if (header.payload_size > 0 && !RecvExact(payload.data(), payload.size(), error_message)) 
+        {
+            return false;
+        }
+
+        if (static_cast<MessageType>(header.msg_type) == MessageType::kErrorResponse) 
+        {
+            if (error_message)
+            {
+                *error_message = std::string(payload.begin(), payload.end());
+            }
+            return false;
+        }
+
+        if (static_cast<MessageType>(header.msg_type) != MessageType::kImageResponse) 
+        {
+            if (error_message)
+            {
+                *error_message = "unexpected response msg_type";
+            }
+            return false;
+        }
+
+        std::vector<uint8_t> image_bytes;
+        std::vector<uint8_t> depth_image_bytes;
+        if (!UnpackResultPayloadWithDepth(payload,
+                                          result_json,
+                                          &image_bytes,
+                                          &depth_image_bytes,
+                                          error_message))
+        {
+            return false;
+        }
+
+        if (!DecodeImage(image_bytes, output, error_message))
+        {
+            return false;
+        }
+
+        if (!depth_image_bytes.empty())
+        {
+            return DecodeImage(depth_image_bytes, depth_output, error_message);
+        }
+
+        return true;
     }
 
 } // namespace ris
-
