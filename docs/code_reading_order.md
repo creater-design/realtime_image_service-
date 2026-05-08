@@ -33,6 +33,8 @@ ros2_ws/src/image_publisher_pkg/launch/network_camera_obstacle_avoidance_launch.
 scripts/run_network_camera_pipeline.sh
 scripts/run_depth_server.sh
 scripts/run_image_server.sh
+scripts/export_depth_anything_onnx.py
+scripts/benchmark_depth_server.py
 ```
 
 参数优先级是：
@@ -90,6 +92,7 @@ src/common/depth_estimator.cpp
 - `DepthEstimator` 是 C++ 到 Python 模型服务的持久 TCP 客户端。
 - `image_server` 复用同一个 `DepthEstimator` 连接，失败时关闭并自动重连，避免每帧重复建立 TCP 连接。
 - C++ 主链路不直接依赖 PyTorch，模型环境和实时通信环境被隔离。
+- `depth_server.py` 支持 `pytorch` 和 `onnxruntime` 两种推理后端，部署细节见 `docs/inference_deployment.md`。
 
 ## 5. 看 Muduo 图像服务端
 
@@ -225,8 +228,18 @@ ros2 topic echo /image_service/status --once
 实时性问题：
 
 ```bash
-ros2 param set /network_camera_node fps 5.0
-ros2 param set /ros2_tcp_client_node max_request_fps 1.0
+ros2 topic hz /camera/image_raw
+ros2 topic hz /image_service/depth_image
+
+ros2 param set /network_camera_node fps 60.0
+ros2 param set /ros2_tcp_client_node max_request_fps 60.0
+```
+
+如果当前机器或手机流达不到 60 FPS，先降到 30，再降到 15，保证结果不要堆积旧帧：
+
+```bash
+ros2 param set /network_camera_node fps 30.0
+ros2 param set /ros2_tcp_client_node max_request_fps 30.0
 ros2 topic hz /image_service/depth_image
 ```
 
@@ -242,6 +255,5 @@ ros2 topic hz /image_service/depth_image
 仍可继续增强的方向：
 
 - 给 `protocol`、`result_payload`、`ObstacleRiskAnalyzer` 增加单元测试。
-- 把风险阈值、ROI 比例进一步参数化。
-- 将 Depth Anything V2 进一步迁移到 ONNX/TensorRT 或 Triton。
+- 继续补 TensorRT engine 后端或 Triton 推理服务部署。
 - 引入 clang-format、clang-tidy 和 CI 构建检查。

@@ -20,6 +20,8 @@ namespace ris
                                         const ObstacleResult& obstacle_result,
                                         const ObstacleRiskAnalyzer& analyzer)
         {
+            // depth_norm follows the risk analyzer convention: smaller value means closer.
+            // The color map is inverted only for visualization so close regions look hotter.
             cv::Mat depth_float;
             if (depth_norm.type() == CV_32FC1)
             {
@@ -46,14 +48,8 @@ namespace ris
         }
     }
 
-    // muduo::net::EventLoop* loop 
-    // muduo 的事件循环：
-    // 监听 socket 事件
-    // 有新连接时通知你
-    // 有消息可读时通知你
-    // 把事件分发给对应回调函数
     ImageTcpServer::ImageTcpServer(muduo::net::EventLoop* loop,
-                                   const muduo::net::InetAddress& address, // 服务器要监听的地址和端口
+                                   const muduo::net::InetAddress& address,
                                    bool use_depth_server,
                                    std::string depth_host,
                                    uint16_t depth_port,
@@ -69,10 +65,10 @@ namespace ris
             depth_estimator_ = std::make_unique<DepthEstimator>(depth_host_, depth_port_);
         }
 
-        // 以后只要有连接状态变化，就调用我这个对象的 onConnection 成员函数。
+        // Muduo owns socket polling; this class only handles connection events and
+        // complete application-level image packets.
         server_.setConnectionCallback(
             std::bind(&ImageTcpServer::onConnection, this, std::placeholders::_1));
-        // 以后只要有消息可读，就调用我这个对象的 onMessage 成员函数。
         server_.setMessageCallback(
             std::bind(&ImageTcpServer::onMessage, this, std::placeholders::_1,
                       std::placeholders::_2, std::placeholders::_3));
@@ -89,7 +85,6 @@ namespace ris
 
     void ImageTcpServer::onConnection(const muduo::net::TcpConnectionPtr& conn)
     {
-        // 只要 buffer 里剩余可读字节数 至少有一个完整消息头那么大，就尝试拆一条消息
         if (conn->connected()) 
         {
             RIS_LOG_INFO("new connection from " + conn->peerAddress().toIpPort());
@@ -104,6 +99,11 @@ namespace ris
                                    muduo::net::Buffer* buffer,
                                    muduo::Timestamp time)
     {
+          (void)time;
+
+          // TCP is a byte stream. A single onMessage callback may contain half a
+          // packet, one packet, or multiple packets. The loop below uses the fixed
+          // protocol header and payload_size to restore application message boundaries.
           while (buffer->readableBytes() >= kHeaderSize) 
           {
             const uint8_t* raw = reinterpret_cast<const uint8_t*>(buffer->peek());
@@ -116,19 +116,14 @@ namespace ris
             }
 
             const MessageHeader header = header_opt.value();
-            // 如果缓冲区的可读字节数 不足以组成一个完整消息（消息头 + 消息体），就等下一次 onMessage 再来处理
             if (buffer->readableBytes() < kHeaderSize + header.payload_size) 
             {
                 RIS_LOG_WARN("incomplete message, wait for more data");
                 return;
             }
 
-            // 现在已经确认完整包到了，那就把头部这 kHeaderSize 个字节从缓冲区消费掉。
             buffer->retrieve(kHeaderSize);
             std::vector<uint8_t> payload(header.payload_size);
-            // 如果消息体长度大于 0
-            // 就从 buffer 当前可读位置把消息体拷贝到 payload
-            // 然后把这些字节从 buffer 中消费掉
             if (header.payload_size > 0) 
             {
                 std::memcpy(payload.data(), buffer->peek(), header.payload_size);
@@ -158,6 +153,8 @@ namespace ris
         RequestMetrics request_metrics;
         ImageServiceStageMetrics stage_metrics;
 
+        // Keep the server-side pipeline explicit: decode request -> estimate depth ->
+        // analyze risk -> package all artifacts into one response payload.
         if (!DecodeRequestImage(payload, &input, &request_metrics, &error_message))
         {
             SendError(conn, request_id, error_message);
@@ -249,6 +246,8 @@ namespace ris
         }
         else
         {
+            // Pseudo depth is only for connectivity/debug testing when the model
+            // service is unavailable. Production runs should use Depth Anything V2.
             cv::Mat gray;
             cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
             gray.convertTo(*depth_norm, CV_32FC1, 1.0 / 255.0);
@@ -297,6 +296,8 @@ namespace ris
         *artifacts = ImageResponseArtifacts{};
         artifacts->obstacle_result = obstacle_result;
 
+        // The response contains both human-facing images and machine-readable JSON.
+        // ROS2 clients can publish the images while controllers consume the JSON.
         cv::Mat output = input.clone();
         risk_analyzer_.DrawResult(artifacts->obstacle_result, &output);
 
@@ -347,6 +348,11 @@ namespace ris
                                     const RequestMetrics& request_metrics,
                                     const ImageServiceStageMetrics& stage_metrics) const
     {
+        if (request_id != 1 && request_id % 60 != 0)
+        {
+            return;
+        }
+
         RIS_LOG_INFO("request_id=" + std::to_string(request_id) +
             " input=" + std::to_string(input.cols) + "x" + std::to_string(input.rows) +
             " output_bytes=" + std::to_string(artifacts.output_bytes) +

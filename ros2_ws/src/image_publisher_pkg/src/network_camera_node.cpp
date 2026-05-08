@@ -22,9 +22,9 @@ NetworkCameraNode::NetworkCameraNode()
         "http://192.168.1.12:8080/video"
     );
     topic_ = declare_parameter<std::string>("topic", "/camera/image_raw");
-    fps_ = declare_parameter<double>("fps", 15.0);
-    image_width_ = declare_parameter<int>("image_width", 640);
-    image_height_ = declare_parameter<int>("image_height", 480);
+    fps_ = declare_parameter<double>("fps", 60.0);
+    image_width_ = declare_parameter<int>("image_width", 320);
+    image_height_ = declare_parameter<int>("image_height", 240);
     reconnect_interval_ = declare_parameter<double>("reconnect_interval", 2.0);
     frame_id_ = declare_parameter<std::string>("frame_id", "network_camera");
 
@@ -32,9 +32,9 @@ NetworkCameraNode::NetworkCameraNode()
     {
         RCLCPP_WARN(
             get_logger(),
-            "fps must be > 0, reset to 15.0"
+            "fps must be > 0, reset to 60.0"
         );
-        fps_ = 15.0;
+        fps_ = 60.0;
     }
 
     if (reconnect_interval_ <= 0.0)
@@ -59,8 +59,10 @@ NetworkCameraNode::NetworkCameraNode()
         frame_id_.c_str()
     );
 
-    image_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_, 10);
+    image_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_, rclcpp::SensorDataQoS());
 
+    // Try to open immediately so launch-time URL mistakes are visible in logs.
+    // Later failures are handled by the timer-driven reconnect path.
     openStream();
     resetTimer();
 
@@ -98,7 +100,18 @@ bool NetworkCameraNode::openStream()
         return false;
     }
 
+    // Keep only a small backend buffer so ROS publishes current frames instead of
+    // draining old frames after network jitter.
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
+    cap_.set(cv::CAP_PROP_FPS, fps_);
+    if (image_width_ > 0)
+    {
+        cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width_);
+    }
+    if (image_height_ > 0)
+    {
+        cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height_);
+    }
 
     RCLCPP_INFO(get_logger(), "network camera stream opened");
     return true;
@@ -128,6 +141,8 @@ void NetworkCameraNode::tryReconnect()
 {
     const auto now = std::chrono::steady_clock::now();
     const auto elapsed = std::chrono::duration<double>(now - last_reconnect_attempt_).count();
+    // Network streams can fail for seconds at a time. Throttle reconnect attempts to
+    // avoid busy loops and unreadable logs while the phone app or Wi-Fi recovers.
     if (last_reconnect_attempt_ != std::chrono::steady_clock::time_point::min() &&
         elapsed < reconnect_interval_)
     {
@@ -170,6 +185,8 @@ void NetworkCameraNode::onTimer()
     if (image_width_ > 0 && image_height_ > 0 &&
         (frame_.cols != image_width_ || frame_.rows != image_height_))
     {
+        // Resize at the camera boundary so downstream ROS/TCP/model stages receive
+        // a predictable image size and bandwidth requirement.
         cv::resize(frame_, publish_frame, cv::Size(image_width_, image_height_));
     }
 
@@ -265,7 +282,7 @@ rcl_interfaces::msg::SetParametersResult NetworkCameraNode::onSetParameters(
 
     if (recreate_publisher)
     {
-        image_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_, 10);
+        image_pub_ = create_publisher<sensor_msgs::msg::Image>(topic_, rclcpp::SensorDataQoS());
     }
 
     if (recreate_timer)
@@ -275,6 +292,8 @@ rcl_interfaces::msg::SetParametersResult NetworkCameraNode::onSetParameters(
 
     if (reopen_stream)
     {
+        // Reopen immediately after a URL change; the throttled reconnect timestamp is
+        // reset so users can fix a bad URL without waiting for the old interval.
         last_reconnect_attempt_ = std::chrono::steady_clock::time_point::min();
         openStream();
     }

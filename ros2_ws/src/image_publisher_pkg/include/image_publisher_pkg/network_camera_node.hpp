@@ -31,9 +31,9 @@ private:
     std::string stream_url_;
     std::string topic_;
     std::string frame_id_;
-    double fps_{15.0};
-    int image_width_{640};
-    int image_height_{480};
+    double fps_{60.0};
+    int image_width_{320};
+    int image_height_{240};
     double reconnect_interval_{2.0};
 
     cv::VideoCapture cap_;

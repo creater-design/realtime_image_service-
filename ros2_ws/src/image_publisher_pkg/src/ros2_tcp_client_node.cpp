@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -44,6 +45,8 @@ namespace
                                 const std::string& key,
                                 std::string* value)
     {
+        // The server JSON shape is controlled by this project. This lightweight
+        // extractor avoids adding a JSON dependency to the ROS2 node for one field.
         if (!value)
         {
             return false;
@@ -126,24 +129,24 @@ public:
         host_ = declare_parameter<std::string>("host", "127.0.0.1");
         port_ = declare_parameter<uint16_t>("port", 9999);
         topic_name_ = declare_parameter<std::string>("topic_name", "/camera/image_raw");
-        output_path_ = declare_parameter<std::string>("output_path", "/tmp/ros2_camera_result.jpg");
-        depth_output_path_ = declare_parameter<std::string>("depth_output_path", "/tmp/ros2_camera_depth.jpg");
-        max_request_fps_.store(std::max(0.1, declare_parameter<double>("max_request_fps", 2.0)));
+        output_path_ = declare_parameter<std::string>("output_path", "");
+        depth_output_path_ = declare_parameter<std::string>("depth_output_path", "");
+        max_request_fps_.store(std::max(0.1, declare_parameter<double>("max_request_fps", 60.0)));
 
         subscription_ = create_subscription<sensor_msgs::msg::Image>(
             topic_name_,
-            10,
+            rclcpp::SensorDataQoS(),
             std::bind(&Ros2TcpClientNode::OnImage, this, std::placeholders::_1)
         );
 
         processed_image_pub_ = create_publisher<sensor_msgs::msg::Image>(
             "/image_service/processed_image",
-            10
+            rclcpp::SensorDataQoS()
         );
 
         depth_image_pub_ = create_publisher<sensor_msgs::msg::Image>(
             "/image_service/depth_image",
-            10
+            rclcpp::SensorDataQoS()
         );
 
         obstacle_result_pub_ = create_publisher<std_msgs::msg::String>(
@@ -181,6 +184,7 @@ public:
     ~Ros2TcpClientNode() override
     {
         worker_running_.store(false);
+        frame_cv_.notify_all();
         if (worker_thread_.joinable())
         {
             worker_thread_.join();
@@ -201,17 +205,28 @@ private:
         std::string result_json;
     };
 
+    struct FrameSnapshot
+    {
+        cv::Mat image;
+        std_msgs::msg::Header header;
+        uint64_t sequence{0};
+    };
+
     void OnImage(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         try
         {
             const cv::Mat image = cv_bridge::toCvCopy(msg, "bgr8")->image.clone();
             {
+                // Store only the newest frame. The model is slower than the camera,
+                // so queueing every frame would increase latency with stale images.
                 std::lock_guard<std::mutex> lock(frame_mutex_);
                 latest_frame_ = image;
                 latest_header_ = msg->header;
+                ++latest_frame_sequence_;
                 has_frame_ = true;
             }
+            frame_cv_.notify_one();
         }
         catch (const cv::Exception& e)
         {
@@ -227,34 +242,70 @@ private:
 
     void ProcessLoop()
     {
+        auto next_allowed_time = std::chrono::steady_clock::now();
         while (worker_running_.load())
         {
+            // Decouple camera subscription FPS from inference FPS. The worker samples
+            // the latest frame at max_request_fps and drops older frames intentionally.
             const auto interval = std::chrono::duration<double>(1.0 / max_request_fps_.load());
-            const auto started_at = std::chrono::steady_clock::now();
-            ProcessLatestFrame();
+            FrameSnapshot snapshot;
+            if (!WaitForNextFrame(next_allowed_time, &snapshot))
+            {
+                continue;
+            }
 
-            const auto elapsed = std::chrono::steady_clock::now() - started_at;
-            if (elapsed < interval)
-            {
-                std::this_thread::sleep_for(interval - elapsed);
-            }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
+            const auto started_at = std::chrono::steady_clock::now();
+            ProcessFrame(snapshot.image, snapshot.header);
+            next_allowed_time = started_at +
+                std::chrono::duration_cast<std::chrono::steady_clock::duration>(interval);
         }
     }
 
-    void ProcessLatestFrame()
+    bool WaitForNextFrame(std::chrono::steady_clock::time_point next_allowed_time,
+                          FrameSnapshot* snapshot)
     {
-        cv::Mat image;
-        std_msgs::msg::Header header;
-        if (!SnapshotLatestFrame(&image, &header))
+        if (!snapshot)
         {
-            PublishStatus(false, false, 10, "waiting for camera frame");
-            return;
+            return false;
         }
 
+        std::unique_lock<std::mutex> lock(frame_mutex_);
+        frame_cv_.wait(lock, [this]() {
+            return !worker_running_.load() ||
+                   (has_frame_ && latest_frame_sequence_ != processed_frame_sequence_);
+        });
+
+        if (!worker_running_.load())
+        {
+            return false;
+        }
+
+        const auto now = std::chrono::steady_clock::now();
+        if (now < next_allowed_time)
+        {
+            frame_cv_.wait_until(lock, next_allowed_time, [this]() {
+                return !worker_running_.load();
+            });
+            if (!worker_running_.load())
+            {
+                return false;
+            }
+        }
+
+        if (!has_frame_ || latest_frame_sequence_ == processed_frame_sequence_)
+        {
+            return false;
+        }
+
+        snapshot->image = latest_frame_.clone();
+        snapshot->header = latest_header_;
+        snapshot->sequence = latest_frame_sequence_;
+        processed_frame_sequence_ = latest_frame_sequence_;
+        return true;
+    }
+
+    void ProcessFrame(const cv::Mat& image, const std_msgs::msg::Header& header)
+    {
         ServerProcessingResult server_result;
         if (!ProcessFrameWithServer(image, &server_result))
         {
@@ -264,24 +315,6 @@ private:
         UpdateFps();
         PublishProcessingResult(header, server_result);
         WriteDebugImages(server_result);
-    }
-
-    bool SnapshotLatestFrame(cv::Mat* image, std_msgs::msg::Header* header)
-    {
-        if (!image || !header)
-        {
-            return false;
-        }
-
-        std::lock_guard<std::mutex> lock(frame_mutex_);
-        if (!has_frame_)
-        {
-            return false;
-        }
-
-        *image = latest_frame_.clone();
-        *header = latest_header_;
-        return true;
     }
 
     bool ProcessFrameWithServer(const cv::Mat& image, ServerProcessingResult* server_result)
@@ -296,6 +329,8 @@ private:
         std::lock_guard<std::mutex> client_lock(client_mutex_);
         if (!client_)
         {
+            // TcpImageClient keeps its TCP connection after the first successful
+            // request; recreating it only happens when host/port changes or errors occur.
             std::lock_guard<std::mutex> config_lock(config_mutex_);
             client_ = std::make_unique<ris::TcpImageClient>(host_, port_);
         }
@@ -400,6 +435,8 @@ private:
             depth_output_path = depth_output_path_;
         }
 
+        // Empty paths disable disk writes. This matters for real-time tests because
+        // writing JPEG files every frame can become a visible latency source.
         if (!output_path.empty() &&
             !cv::imwrite(output_path, server_result.processed_image))
         {
@@ -544,21 +581,25 @@ private:
                 else if (name == "max_request_fps")
                 {
                     max_request_fps_.store(std::max(0.1, parameter.as_double()));
+                    frame_cv_.notify_one();
                 }
             }
         }
 
         if (recreate_subscription)
         {
+            // Topic changes need a new subscription; the worker thread can keep using
+            // the latest-frame cache without knowing where frames came from.
             subscription_ = create_subscription<sensor_msgs::msg::Image>(
                 topic_name_,
-                10,
+                rclcpp::SensorDataQoS(),
                 std::bind(&Ros2TcpClientNode::OnImage, this, std::placeholders::_1)
             );
         }
 
         if (reset_client)
         {
+            // Force the next request to open a connection to the updated server.
             std::lock_guard<std::mutex> client_lock(client_mutex_);
             if (client_)
             {
@@ -584,7 +625,7 @@ private:
     std::string topic_name_;
     std::string output_path_;
     std::string depth_output_path_;
-    std::atomic<double> max_request_fps_{2.0};
+    std::atomic<double> max_request_fps_{60.0};
     uint32_t request_id_{0};
     std::atomic<double> fps_{0.0};
     int frames_since_fps_update_{0};
@@ -594,9 +635,12 @@ private:
     std::mutex config_mutex_;
     std::mutex client_mutex_;
     std::mutex frame_mutex_;
+    std::condition_variable frame_cv_;
     cv::Mat latest_frame_;
     std_msgs::msg::Header latest_header_;
     bool has_frame_{false};
+    uint64_t latest_frame_sequence_{0};
+    uint64_t processed_frame_sequence_{0};
     std::unique_ptr<ris::TcpImageClient> client_;
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;

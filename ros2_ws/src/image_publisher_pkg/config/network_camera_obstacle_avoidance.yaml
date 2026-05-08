@@ -2,7 +2,7 @@ network_camera_node:
   ros__parameters:
     stream_url: "http://192.168.1.12:8080/video"
     topic: "/camera/image_raw"
-    fps: 10.0
+    fps: 60.0
     image_width: 320
     image_height: 240
     reconnect_interval: 2.0
@@ -13,9 +13,9 @@ ros2_tcp_client_node:
     host: "127.0.0.1"
     port: 9999
     topic_name: "/camera/image_raw"
-    output_path: "/tmp/ros2_camera_result.jpg"
-    depth_output_path: "/tmp/ros2_camera_depth.jpg"
-    max_request_fps: 1.0
+    output_path: ""
+    depth_output_path: ""
+    max_request_fps: 60.0
 
 safety_controller_node:
   ros__parameters:

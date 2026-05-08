@@ -7,8 +7,6 @@ namespace ris
 {
     namespace
     {
-        // 该函数将32位无符号整数转换为网络字节序，随后将其4个字节追加到缓冲区末尾。通过htonl确保大端序兼容，
-        // 再利用insert将二进制数据写入vector，常用于网络协议或序列化场景中的数据打包。
         void AppendUint32(std::vector<uint8_t>* buffer, uint32_t value)
         {
             const uint32_t net_value = htonl(value);
@@ -31,7 +29,6 @@ namespace ris
             }
 
             uint32_t net_value = 0;
-            // buffer.data 返回指向容器数据最开始的内存指针
             std::memcpy(&net_value, buffer.data() + offset, sizeof(net_value));
             *value = ntohl(net_value);
             return true;
@@ -48,6 +45,8 @@ namespace ris
                                                     const std::vector<uint8_t>& image_bytes,
                                                     const std::vector<uint8_t>& depth_image_bytes)
     {
+        // Response payload layout:
+        // json_size + json + image_size + processed_jpeg + optional depth_size + depth_jpeg.
         std::vector<uint8_t> payload;
         
         payload.reserve(sizeof(uint32_t) + json.size() +
@@ -102,8 +101,8 @@ namespace ris
 
         std::size_t offset = 0;
         
-        // payload 里存的是大端，网络字节序
-        // 程序变量 json_size 里拿到的是正常整数-小端存储，主机字节序，ReadUint32最后做了转换。
+        // Each variable-length field is length-prefixed so binary JPEG bytes can be
+        // packed together with UTF-8 JSON without separator escaping.
         uint32_t json_size = 0;
         if (!ReadUint32(payload, offset, &json_size))
         {

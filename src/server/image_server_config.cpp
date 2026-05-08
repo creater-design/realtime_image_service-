@@ -85,6 +85,8 @@ namespace ris
             ReadOptionalScalar(root, "image_server", "use_depth_server", &config->use_depth_server);
             ReadOptionalScalar(root, "image_server", "depth_host", &config->depth_host);
 
+            // Start from compiled defaults, then override only the keys present in YAML.
+            // This keeps old config files valid when new risk parameters are added.
             ObstacleRiskConfig risk_config = config->risk_config;
             ReadOptionalScalar(root, "obstacle_risk_analyzer", "roi_x_ratio", &risk_config.roi_x_ratio);
             ReadOptionalScalar(root, "obstacle_risk_analyzer", "roi_y_ratio", &risk_config.roi_y_ratio);

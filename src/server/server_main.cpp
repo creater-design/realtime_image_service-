@@ -84,6 +84,8 @@ int main(int argc, char const *argv[])
         }
     }
 
+    // Command-line flags intentionally override YAML. This lets run scripts keep a
+    // stable config file while still changing ports or backend mode for quick tests.
     for (int i = 1; i < argc; ++i)
     {
         const std::string arg = argv[i];
@@ -140,7 +142,8 @@ int main(int argc, char const *argv[])
     );
     RIS_LOG_INFO("image_server config: " + ris::BuildImageServerConfigLog(config));
     RIS_LOG_INFO("image_server listening on port " + std::to_string(config.port));
-    server.start(); // 启动服务器，开始监听端口，进入事件循环
-    loop.loop(); // 启动事件循环，让程序一直卡在这里，不停地监听网络事件，然后分发给对应的回调函数。
+    server.start();
+    // Muduo's EventLoop blocks here and dispatches connection/message callbacks.
+    loop.loop();
     return 0;
 }

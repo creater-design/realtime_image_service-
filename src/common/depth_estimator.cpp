@@ -19,6 +19,9 @@ namespace ris
         constexpr std::size_t kChunkBytes = 64 * 1024;
         constexpr std::size_t kMaxDepthPayloadSize = 20 * 1024 * 1024;
 
+        // depth_server.py uses a small binary protocol:
+        // request  = uint32 image_size + JPEG bytes
+        // response = uint32 status + uint32 payload_size + payload bytes
         void WriteUint32(uint8_t* dst, uint32_t value)
         {
             const uint32_t net_value = htonl(value);
@@ -34,6 +37,7 @@ namespace ris
 
         void SetSocketOptions(int fd)
         {
+            // Keep the persistent model connection responsive for image-sized payloads.
             int one = 1;
             ::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof(one));
             ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
@@ -78,6 +82,9 @@ namespace ris
             return false;
         }
 
+        // The socket is shared by image_server worker threads, so one request/response
+        // exchange is protected by a mutex. A single GPU model normally cannot process
+        // unlimited concurrent frames anyway; this keeps protocol ordering simple.
         uint32_t status = 1;
         std::vector<uint8_t> payload;
         {
@@ -89,6 +96,8 @@ namespace ris
 
             if (!ExchangeLocked(encoded, &status, &payload, error_message))
             {
+                // The depth service may have restarted or closed an idle connection.
+                // Close and retry once so transient disconnects do not fail the frame.
                 CloseLocked();
                 std::string reconnect_error;
                 if (!EnsureConnectedLocked(&reconnect_error) ||
@@ -193,6 +202,8 @@ namespace ris
 
         payload->clear();
 
+        // Send the whole JPEG request first, then wait for exactly one depth response.
+        // RecvExactLocked is necessary because TCP may split the response arbitrarily.
         uint8_t size_buf[4];
         WriteUint32(size_buf, static_cast<uint32_t>(encoded_image.size()));
         if (!SendAllLocked(size_buf, sizeof(size_buf), error_message) ||
@@ -231,6 +242,7 @@ namespace ris
         std::size_t sent = 0;
         while (sent < size)
         {
+            // poll adds a bounded timeout around blocking socket operations.
             if (!WaitFdReadyLocked(POLLOUT, error_message))
             {
                 return false;
@@ -263,6 +275,8 @@ namespace ris
         std::size_t received = 0;
         while (received < size)
         {
+            // The caller asked for an exact protocol field/payload size; partial reads
+            // stay inside this helper instead of leaking into higher-level logic.
             if (!WaitFdReadyLocked(POLLIN, error_message))
             {
                 return false;

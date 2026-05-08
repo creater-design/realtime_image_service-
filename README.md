@@ -39,6 +39,7 @@ src/common/                            协议、图像编解码、深度客户�
 src/server/                            Muduo image_server
 ros2_ws/src/image_publisher_pkg/       ROS2 C++ 节点、launch、YAML
 scripts/                               启动脚本和 Depth Anything V2 服务
+models/                                本地 ONNX/TensorRT 模型产物，不提交大文件
 docs/                                  阅读顺序和简历说明
 ```
 
@@ -46,6 +47,8 @@ docs/                                  阅读顺序和简历说明
 
 ```text
 docs/code_reading_order.md
+docs/inference_deployment.md
+docs/performance_report.md
 ```
 
 ## Third-Party Model
@@ -72,6 +75,7 @@ Depth-Anything-V2-main/checkpoints/depth_anything_v2_vits.pth
 - C++ Muduo 服务端统一完成图像解码、深度服务调用、风险分析、结果图/深度图编码。
 - 障碍物检测 ROI 和风险阈值由 `config/image_server.yaml` 配置，不写死在算法里。
 - Python Depth Anything V2 服务支持 CUDA、fp16 autocast、warmup、可调 `input_size` 和持久 TCP 连接。
+- 推理服务支持 `pytorch` / `onnxruntime` 后端切换，提供 ONNX 导出和 TCP 压测脚本。
 - `image_server` 复用到 `depth_server.py` 的长连接，断线后自动重连，避免每帧重复 `connect/close`。
 - 输出可观测话题：结果图、深度图、风险 JSON、metrics、status、`cmd_vel`。
 
@@ -124,11 +128,24 @@ output path: /tmp/network_camera_test.jpg
 
 ## Run
 
-终端 1：启动 Depth Anything V2 推理服务。
+终端 1：启动 ONNX Runtime CUDA 深度推理服务。
 
 ```bash
 cd /home/wzq/MyProject/realtime_image_service
-DEPTH_INPUT_SIZE=224 DEPTH_DEVICE=cuda DEPTH_RESPONSE_CODEC=jpg ./scripts/run_depth_server.sh
+export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+
+DEPTH_BACKEND=onnxruntime \
+DEPTH_ONNX_PATH=./models/depth_anything_v2_vits_280.onnx \
+DEPTH_INPUT_SIZE=280 \
+DEPTH_ORT_PROVIDERS=CUDAExecutionProvider \
+DEPTH_RESPONSE_CODEC=jpg \
+./scripts/run_depth_server.sh
+```
+
+如果需要回退到 PyTorch 后端：
+
+```bash
+DEPTH_BACKEND=pytorch DEPTH_INPUT_SIZE=280 DEPTH_DEVICE=cuda ./scripts/run_depth_server.sh
 ```
 
 终端 2：启动 Muduo 图像服务。
@@ -154,10 +171,10 @@ IMAGE_SERVER_PORT=9999 DEPTH_HOST=127.0.0.1 DEPTH_PORT=18080 ./scripts/run_image
 
 ```yaml
 obstacle_risk_analyzer:
-  roi_x_ratio: 0.0
+  roi_x_ratio: 0.2
   roi_y_ratio: 0.50
-  roi_width_ratio: 1.0
-  roi_height_ratio: 0.50
+  roi_width_ratio: 0.7
+  roi_height_ratio: 0.45
 ```
 
 如果只想验证 ROS/TCP 链路，不跑 Depth Anything：
@@ -174,8 +191,10 @@ cd /home/wzq/MyProject/realtime_image_service
 STREAM_URL="http://手机IP:端口/video" \
 IMAGE_WIDTH=320 \
 IMAGE_HEIGHT=240 \
-FPS=10.0 \
-MAX_REQUEST_FPS=1.0 \
+FPS=60.0 \
+MAX_REQUEST_FPS=60.0 \
+OUTPUT_PATH="" \
+DEPTH_OUTPUT_PATH="" \
 ./scripts/run_network_camera_pipeline.sh
 ```
 
@@ -222,33 +241,82 @@ ros2 topic echo /image_service/status --once
 ros2 topic hz /image_service/depth_image
 ```
 
-最新调试图片会写到：
+默认关闭调试图片落盘，避免 60 FPS 下磁盘写 JPEG 影响实时性。需要调试图片时再设置：
 
-```text
-/tmp/ros2_camera_result.jpg
-/tmp/ros2_camera_depth.jpg
+```bash
+OUTPUT_PATH="/tmp/ros2_camera_result.jpg" \
+DEPTH_OUTPUT_PATH="/tmp/ros2_camera_depth.jpg" \
+./scripts/run_network_camera_pipeline.sh
 ```
 
 ## Runtime Tuning
 
-推荐先使用低负载配置：
+默认目标配置：
 
 ```bash
-DEPTH_INPUT_SIZE=224
+DEPTH_INPUT_SIZE=280
 IMAGE_WIDTH=320
 IMAGE_HEIGHT=240
-FPS=10.0
-MAX_REQUEST_FPS=1.0
+FPS=60.0
+MAX_REQUEST_FPS=60.0
 DEPTH_RESPONSE_CODEC=jpg
 ```
 
 调参方向：
 
+- 60 FPS 默认只使用 ONNX Runtime CUDA 后端；如果 CUDA/cuDNN 不可用，先修复 GPU 环境，不走 CPU fallback。
 - 卡顿优先降低手机 App 输出分辨率，而不是只在 ROS 节点里 resize。
 - OpenCV 打不开 RTSP 时优先使用 HTTP MJPEG。
 - `MAX_REQUEST_FPS` 控制深度推理请求频率，不等于摄像头发布频率。
+- 结果图片默认不落盘；需要调试时再设置 `OUTPUT_PATH` 和 `DEPTH_OUTPUT_PATH`。
 - `DEPTH_RESPONSE_CODEC=jpg` 优先保证实时性；需要无损深度图时再改成 `png`。
 - Depth Anything V2 是相对深度模型，不输出真实米制距离。
+
+## Inference Deployment
+
+完整推理部署说明见：
+
+```text
+docs/inference_deployment.md
+```
+
+导出 ONNX：
+
+```bash
+cd /home/wzq/MyProject/realtime_image_service
+mkdir -p models
+
+python scripts/export_depth_anything_onnx.py \
+  --repo_path ./Depth-Anything-V2-main \
+  --checkpoint ./Depth-Anything-V2-main/checkpoints/depth_anything_v2_vits.pth \
+  --encoder vits \
+  --height 280 \
+  --width 280 \
+  --device cpu \
+  --output ./models/depth_anything_v2_vits_280.onnx
+```
+
+启动 ONNX Runtime 后端：
+
+```bash
+DEPTH_BACKEND=onnxruntime \
+DEPTH_ONNX_PATH=./models/depth_anything_v2_vits_280.onnx \
+DEPTH_INPUT_SIZE=280 \
+DEPTH_ORT_PROVIDERS=CUDAExecutionProvider \
+./scripts/run_depth_server.sh
+```
+
+压测 depth_server：
+
+```bash
+python scripts/benchmark_depth_server.py \
+  --host 127.0.0.1 \
+  --port 18080 \
+  --width 320 \
+  --height 240 \
+  --count 50 \
+  --warmup 5
+```
 
 ## Parameters And YAML Config
 
@@ -267,11 +335,11 @@ roi_width_ratio  ROI 宽度，占图像宽度比例
 roi_height_ratio ROI 高度，占图像高度比例
 ```
 
-默认配置表示检测输入照片或视频帧的下面 50%：
+默认配置偏向视角中心偏下区域：
 
 ```text
-横向：0% 到 100%
-纵向：50% 到 100%
+横向：20% 到 90%
+纵向：50% 到 95%
 ```
 
 ROS2 侧参数分三层：
@@ -296,7 +364,7 @@ ros2_ws/src/image_publisher_pkg/config/network_camera_obstacle_avoidance.yaml
 
 CONFIG_FILE=/path/to/network_camera_obstacle_avoidance.yaml \
 STREAM_URL="http://手机IP:端口/video" \
-MAX_REQUEST_FPS=1.0 \
+MAX_REQUEST_FPS=60.0 \
 ./scripts/run_network_camera_pipeline.sh
 ```
 
@@ -311,14 +379,16 @@ ros2 param get /ros2_tcp_client_node max_request_fps
 运行时动态修改：
 
 ```bash
-ros2 param set /network_camera_node fps 5.0
+ros2 param set /network_camera_node fps 60.0
 ros2 param set /network_camera_node image_width 320
 ros2 param set /network_camera_node image_height 240
 ros2 param set /network_camera_node stream_url "http://手机IP:端口/video"
 
-ros2 param set /ros2_tcp_client_node max_request_fps 1.0
+ros2 param set /ros2_tcp_client_node max_request_fps 60.0
 ros2 param set /safety_controller_node low_speed 0.10
 ```
+
+如果 `ros2 topic hz /image_service/depth_image` 达不到目标值，先把 `fps` 和 `max_request_fps` 同步降到 30，再视情况降到 15。实时系统优先保证处理最新帧，不追求积压队列里的每一帧都被推理。
 
 当前支持动态生效的参数：
 
@@ -348,4 +418,4 @@ ros2 param set /safety_controller_node low_speed 0.10
 
 - Depth Anything V2 输出相对深度，不能直接作为真实距离。
 - 当前目标是感知系统工程原型，不是自动驾驶级避障系统。
-- 企业级进一步方向：ONNX/TensorRT、Triton 推理服务、相机标定、rosbag 回放测试、P95/P99 延迟统计、YAML 配置化。
+- 企业级进一步方向：TensorRT engine、Triton 推理服务、相机标定、rosbag 回放测试、P95/P99 延迟统计。

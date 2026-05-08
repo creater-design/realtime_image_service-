@@ -5,10 +5,10 @@ image_server:
   depth_port: 18080
 
 obstacle_risk_analyzer:
-  roi_x_ratio: 0.0
+  roi_x_ratio: 0.2
   roi_y_ratio: 0.50
-  roi_width_ratio: 1.0
-  roi_height_ratio: 0.50
+  roi_width_ratio: 0.7
+  roi_height_ratio: 0.45
 
   min_valid_depth: 0.000001
   max_valid_depth: 1.0
@@ -16,7 +16,7 @@ obstacle_risk_analyzer:
   stop_depth_threshold: 0.22
   slow_depth_threshold: 0.35
   min_valid_ratio: 0.20
-  high_min_obstacle_area_ratio: 0.02
-  medium_min_obstacle_area_ratio: 0.01
-  min_component_area_ratio: 0.002
-  morph_kernel_size: 3
+  high_min_obstacle_area_ratio: 0.02    # high 风险要求的最小障碍物面积比例，占 ROI 面积
+  medium_min_obstacle_area_ratio: 0.01  # medium 风险要求的最小障碍物面积比例，占 ROI 面积
+  min_component_area_ratio: 0.002       # 小于该面积比例的单个连通区域视为噪声
+  morph_kernel_size: 3                  # 形态学开/闭运算核大小，用于去噪和连接断裂区域

@@ -35,7 +35,7 @@ Depth Anything V2 输出相对深度，不是米制距离。它适合做近远�
 
 ### 企业级下一步怎么做？
 
-- 将 Depth Anything V2 迁移到 ONNX/TensorRT 或 Triton 加速推理。
+- 已支持 Depth Anything V2 ONNX 导出和 ONNX Runtime 后端；下一步做 TensorRT/Triton 加速。
 - 加相机标定和真实距离标注数据。
 - 做 rosbag 回放测试和自动化性能报告。
 - 把阈值、ROI、速度策略放到 YAML 配置。
