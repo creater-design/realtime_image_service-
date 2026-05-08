@@ -1,0 +1,22 @@
+image_server:
+  port: 9999
+  use_depth_server: true
+  depth_host: "127.0.0.1"
+  depth_port: 18080
+
+obstacle_risk_analyzer:
+  roi_x_ratio: 0.0
+  roi_y_ratio: 0.50
+  roi_width_ratio: 1.0
+  roi_height_ratio: 0.50
+
+  min_valid_depth: 0.000001
+  max_valid_depth: 1.0
+  near_depth_threshold: 0.30
+  stop_depth_threshold: 0.22
+  slow_depth_threshold: 0.35
+  min_valid_ratio: 0.20
+  high_min_obstacle_area_ratio: 0.02
+  medium_min_obstacle_area_ratio: 0.01
+  min_component_area_ratio: 0.002
+  morph_kernel_size: 3

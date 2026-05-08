@@ -6,6 +6,7 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <utility>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
@@ -16,6 +17,7 @@ namespace ris
     namespace
     {
         constexpr std::size_t kChunkBytes = 64 * 1024;
+        constexpr std::size_t kMaxDepthPayloadSize = 20 * 1024 * 1024;
 
         void WriteUint32(uint8_t* dst, uint32_t value)
         {
@@ -29,6 +31,17 @@ namespace ris
             std::memcpy(&net_value, src, sizeof(net_value));
             return ntohl(net_value);
         }
+
+        void SetSocketOptions(int fd)
+        {
+            int one = 1;
+            ::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof(one));
+            ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+
+            int buffer_size = 4 * 1024 * 1024;
+            ::setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size));
+            ::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buffer_size, sizeof(buffer_size));
+        }
     }
 
     DepthEstimator::DepthEstimator(std::string host, uint16_t port, int timeout_ms)
@@ -36,9 +49,20 @@ namespace ris
     {
     }
 
+    DepthEstimator::~DepthEstimator()
+    {
+        Close();
+    }
+
+    void DepthEstimator::Close()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        CloseLocked();
+    }
+
     bool DepthEstimator::EstimateDepth(const cv::Mat& input_bgr,
                                        cv::Mat* depth_norm,
-                                       std::string* error_message) const
+                                       std::string* error_message)
     {
         if (!depth_norm)
         {
@@ -54,15 +78,74 @@ namespace ris
             return false;
         }
 
-        const int fd = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (fd < 0)
+        uint32_t status = 1;
+        std::vector<uint8_t> payload;
         {
-            if (error_message) *error_message = std::string("depth socket create failed: ") + std::strerror(errno);
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (!EnsureConnectedLocked(error_message))
+            {
+                return false;
+            }
+
+            if (!ExchangeLocked(encoded, &status, &payload, error_message))
+            {
+                CloseLocked();
+                std::string reconnect_error;
+                if (!EnsureConnectedLocked(&reconnect_error) ||
+                    !ExchangeLocked(encoded, &status, &payload, error_message))
+                {
+                    if (error_message && !reconnect_error.empty())
+                    {
+                        *error_message += "; reconnect failed: " + reconnect_error;
+                    }
+                    CloseLocked();
+                    return false;
+                }
+            }
+        }
+
+        if (status != 0)
+        {
+            if (error_message) *error_message = std::string(payload.begin(), payload.end());
             return false;
         }
 
-        int one = 1;
-        ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+        cv::Mat depth_u8 = cv::imdecode(payload, cv::IMREAD_GRAYSCALE);
+        if (depth_u8.empty())
+        {
+            if (error_message) *error_message = "failed to decode depth image from depth_server";
+            return false;
+        }
+
+        depth_u8.convertTo(*depth_norm, CV_32FC1, 1.0 / 255.0);
+        return true;
+    }
+
+    bool DepthEstimator::EnsureConnectedLocked(std::string* error_message)
+    {
+        if (sockfd_ >= 0)
+        {
+            return true;
+        }
+
+        return ConnectLocked(error_message);
+    }
+
+    bool DepthEstimator::ConnectLocked(std::string* error_message)
+    {
+        CloseLocked();
+
+        const int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+        if (fd < 0)
+        {
+            if (error_message)
+            {
+                *error_message = std::string("depth socket create failed: ") + std::strerror(errno);
+            }
+            return false;
+        }
+
+        SetSocketOptions(fd);
 
         sockaddr_in addr{};
         addr.sin_family = AF_INET;
@@ -76,78 +159,95 @@ namespace ris
 
         if (::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
         {
-            if (error_message) *error_message = std::string("connect depth_server failed: ") + std::strerror(errno);
+            if (error_message)
+            {
+                *error_message = std::string("connect depth_server failed: ") + std::strerror(errno);
+            }
             ::close(fd);
             return false;
         }
 
-        uint8_t size_buf[4];
-        WriteUint32(size_buf, static_cast<uint32_t>(encoded.size()));
-        if (!SendAll(fd, size_buf, sizeof(size_buf), error_message) ||
-            !SendAll(fd, encoded.data(), encoded.size(), error_message))
+        sockfd_ = fd;
+        return true;
+    }
+
+    void DepthEstimator::CloseLocked()
+    {
+        if (sockfd_ >= 0)
         {
-            ::close(fd);
+            ::close(sockfd_);
+            sockfd_ = -1;
+        }
+    }
+
+    bool DepthEstimator::ExchangeLocked(const std::vector<uint8_t>& encoded_image,
+                                        uint32_t* status,
+                                        std::vector<uint8_t>* payload,
+                                        std::string* error_message)
+    {
+        if (!status || !payload)
+        {
+            if (error_message) *error_message = "depth response output pointer is null";
+            return false;
+        }
+
+        payload->clear();
+
+        uint8_t size_buf[4];
+        WriteUint32(size_buf, static_cast<uint32_t>(encoded_image.size()));
+        if (!SendAllLocked(size_buf, sizeof(size_buf), error_message) ||
+            !SendAllLocked(encoded_image.data(), encoded_image.size(), error_message))
+        {
             return false;
         }
 
         uint8_t response_header[8];
-        if (!RecvExact(fd, response_header, sizeof(response_header), error_message))
+        if (!RecvExactLocked(response_header, sizeof(response_header), error_message))
         {
-            ::close(fd);
             return false;
         }
 
-        const uint32_t status = ReadUint32(response_header);
+        *status = ReadUint32(response_header);
         const uint32_t payload_size = ReadUint32(response_header + 4);
-
-        std::vector<uint8_t> payload(payload_size);
-        if (payload_size > 0 && !RecvExact(fd, payload.data(), payload.size(), error_message))
+        if (payload_size > kMaxDepthPayloadSize)
         {
-            ::close(fd);
+            if (error_message) *error_message = "depth response payload too large";
             return false;
         }
 
-        ::close(fd);
-
-        if (status != 0)
+        payload->resize(payload_size);
+        if (payload_size > 0 && !RecvExactLocked(payload->data(), payload->size(), error_message))
         {
-            if (error_message) *error_message = std::string(payload.begin(), payload.end());
             return false;
         }
 
-        cv::Mat depth_u8 = cv::imdecode(payload, cv::IMREAD_GRAYSCALE);
-        if (depth_u8.empty())
-        {
-            if (error_message) *error_message = "failed to decode depth png from depth_server";
-            return false;
-        }
-
-        depth_u8.convertTo(*depth_norm, CV_32FC1, 1.0 / 255.0);
         return true;
     }
 
-    bool DepthEstimator::SendAll(int fd,
-                                 const uint8_t* data,
-                                 std::size_t size,
-                                 std::string* error_message) const
+    bool DepthEstimator::SendAllLocked(const uint8_t* data,
+                                       std::size_t size,
+                                       std::string* error_message)
     {
         std::size_t sent = 0;
         while (sent < size)
         {
-            if (!WaitFdReady(fd, POLLOUT, error_message))
+            if (!WaitFdReadyLocked(POLLOUT, error_message))
             {
                 return false;
             }
 
             const std::size_t chunk_size = std::min(kChunkBytes, size - sent);
-            const ssize_t n = ::send(fd, data + sent, chunk_size, MSG_NOSIGNAL);
+            const ssize_t n = ::send(sockfd_, data + sent, chunk_size, MSG_NOSIGNAL);
             if (n < 0 && errno == EINTR)
             {
                 continue;
             }
             if (n <= 0)
             {
-                if (error_message) *error_message = std::string("depth send failed: ") + std::strerror(errno);
+                if (error_message)
+                {
+                    *error_message = std::string("depth send failed: ") + std::strerror(errno);
+                }
                 return false;
             }
 
@@ -156,27 +256,29 @@ namespace ris
         return true;
     }
 
-    bool DepthEstimator::RecvExact(int fd,
-                                   uint8_t* data,
-                                   std::size_t size,
-                                   std::string* error_message) const
+    bool DepthEstimator::RecvExactLocked(uint8_t* data,
+                                         std::size_t size,
+                                         std::string* error_message)
     {
         std::size_t received = 0;
         while (received < size)
         {
-            if (!WaitFdReady(fd, POLLIN, error_message))
+            if (!WaitFdReadyLocked(POLLIN, error_message))
             {
                 return false;
             }
 
-            const ssize_t n = ::recv(fd, data + received, size - received, 0);
+            const ssize_t n = ::recv(sockfd_, data + received, size - received, 0);
             if (n < 0 && errno == EINTR)
             {
                 continue;
             }
             if (n <= 0)
             {
-                if (error_message) *error_message = std::string("depth recv failed: ") + std::strerror(errno);
+                if (error_message)
+                {
+                    *error_message = std::string("depth recv failed: ") + std::strerror(errno);
+                }
                 return false;
             }
 
@@ -185,12 +287,11 @@ namespace ris
         return true;
     }
 
-    bool DepthEstimator::WaitFdReady(int fd,
-                                     short events,
-                                     std::string* error_message) const
+    bool DepthEstimator::WaitFdReadyLocked(short events,
+                                           std::string* error_message) const
     {
         pollfd pfd{};
-        pfd.fd = fd;
+        pfd.fd = sockfd_;
         pfd.events = events;
 
         while (true)
@@ -215,7 +316,10 @@ namespace ris
                 continue;
             }
 
-            if (error_message) *error_message = std::string("depth poll failed: ") + std::strerror(errno);
+            if (error_message)
+            {
+                *error_message = std::string("depth poll failed: ") + std::strerror(errno);
+            }
             return false;
         }
     }

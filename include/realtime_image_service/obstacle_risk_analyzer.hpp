@@ -5,6 +5,28 @@
 
 namespace ris
 {
+    struct ObstacleRiskConfig
+    {
+        float roi_x_ratio{0.0f};
+        float roi_y_ratio{0.50f};
+        float roi_width_ratio{1.0f};
+        float roi_height_ratio{0.50f};
+
+        float min_valid_depth{1e-6f};
+        float max_valid_depth{1.0f};
+        float near_depth_threshold{0.30f};
+        float stop_depth_threshold{0.22f};
+        float slow_depth_threshold{0.35f};
+        float min_valid_ratio{0.20f};
+        float high_min_obstacle_area_ratio{0.02f};
+        float medium_min_obstacle_area_ratio{0.01f};
+        float min_component_area_ratio{0.002f};
+        int morph_kernel_size{3};
+    };
+
+    bool ValidateObstacleRiskConfig(const ObstacleRiskConfig& config,
+                                    std::string* error_message = nullptr);
+
     // 障碍物风险分析结果
     struct ObstacleResult
     {
@@ -43,7 +65,10 @@ namespace ris
     {
     public:
         ObstacleRiskAnalyzer() = default;
+        explicit ObstacleRiskAnalyzer(ObstacleRiskConfig config);
         ~ObstacleRiskAnalyzer() = default;
+
+        const ObstacleRiskConfig& config() const;
 
         // 分析归一化深度图中的障碍物风险
         //
@@ -62,5 +87,8 @@ namespace ris
         // 把分析结果画到图像上
         void DrawResult(const ObstacleResult& result,
                         cv::Mat* image) const;
+
+    private:
+        ObstacleRiskConfig config_;
     };
 }

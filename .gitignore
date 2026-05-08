@@ -2,14 +2,29 @@
 build/
 install/
 log/
+logs/
 ros2_ws/build/
 ros2_ws/install/
 ros2_ws/log/
+compile_commands.json
+CMakeUserPresets.json
+
+# Test and analysis cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Python cache
 __pycache__/
 *.py[cod]
 *.pyo
+
+# Local tools and editor state
+.codex
+.agents/
+.vscode/
+.idea/
 
 # Local third-party source and model weights
 Depth-Anything-V2-main/
@@ -18,15 +33,17 @@ Depth-Anything-V2-main/
 *.onnx
 *.engine
 
-# Runtime outputs
+# Runtime outputs and datasets
 *.jpg
 *.jpeg
 *.png
 *.mp4
 *.avi
+*.bag
+*.db3
+*.mcap
+*.log
 
 # Editor and OS files
-.vscode/
-.idea/
 .DS_Store
 Thumbs.db

@@ -1,8 +1,11 @@
 #include <cctype>
+#include <atomic>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
@@ -83,6 +86,10 @@ public:
         medium_speed_ = declare_parameter<double>("medium_speed", 0.05);
         stop_on_unknown_ = declare_parameter<bool>("stop_on_unknown", true);
 
+        parameter_callback_handle_ = add_on_set_parameters_callback(
+            std::bind(&SafetyControllerNode::OnSetParameters, this, std::placeholders::_1)
+        );
+
         cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
         obstacle_sub_ = create_subscription<std_msgs::msg::String>(
@@ -110,17 +117,17 @@ private:
         }
         else if (risk_level == "medium")
         {
-            cmd.linear.x = medium_speed_;
+            cmd.linear.x = medium_speed_.load();
             cmd.angular.z = 0.0;
         }
         else if (risk_level == "low")
         {
-            cmd.linear.x = low_speed_;
+            cmd.linear.x = low_speed_.load();
             cmd.angular.z = 0.0;
         }
         else
         {
-            cmd.linear.x = stop_on_unknown_ ? 0.0 : low_speed_;
+            cmd.linear.x = stop_on_unknown_.load() ? 0.0 : low_speed_.load();
             cmd.angular.z = 0.0;
         }
 
@@ -136,12 +143,69 @@ private:
         );
     }
 
-    double low_speed_{0.20};
-    double medium_speed_{0.05};
-    bool stop_on_unknown_{true};
+    rcl_interfaces::msg::SetParametersResult OnSetParameters(
+        const std::vector<rclcpp::Parameter>& parameters)
+    {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+
+        for (const auto& parameter : parameters)
+        {
+            const std::string& name = parameter.get_name();
+            if (name == "low_speed" || name == "medium_speed")
+            {
+                if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE ||
+                    parameter.as_double() < 0.0)
+                {
+                    result.successful = false;
+                    result.reason = name + " must be a non-negative double";
+                    return result;
+                }
+            }
+            else if (name == "stop_on_unknown" &&
+                     parameter.get_type() != rclcpp::ParameterType::PARAMETER_BOOL)
+            {
+                result.successful = false;
+                result.reason = "stop_on_unknown must be a bool";
+                return result;
+            }
+        }
+
+        for (const auto& parameter : parameters)
+        {
+            const std::string& name = parameter.get_name();
+            if (name == "low_speed")
+            {
+                low_speed_.store(parameter.as_double());
+            }
+            else if (name == "medium_speed")
+            {
+                medium_speed_.store(parameter.as_double());
+            }
+            else if (name == "stop_on_unknown")
+            {
+                stop_on_unknown_.store(parameter.as_bool());
+            }
+        }
+
+        RCLCPP_INFO(
+            get_logger(),
+            "updated parameters: low_speed=%.3f medium_speed=%.3f stop_on_unknown=%s",
+            low_speed_.load(),
+            medium_speed_.load(),
+            stop_on_unknown_.load() ? "true" : "false"
+        );
+
+        return result;
+    }
+
+    std::atomic<double> low_speed_{0.20};
+    std::atomic<double> medium_speed_{0.05};
+    std::atomic<bool> stop_on_unknown_{true};
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr obstacle_sub_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };
 
 int main(int argc, char** argv)

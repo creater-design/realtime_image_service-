@@ -8,9 +8,11 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/header.hpp>
@@ -126,8 +128,7 @@ public:
         topic_name_ = declare_parameter<std::string>("topic_name", "/camera/image_raw");
         output_path_ = declare_parameter<std::string>("output_path", "/tmp/ros2_camera_result.jpg");
         depth_output_path_ = declare_parameter<std::string>("depth_output_path", "/tmp/ros2_camera_depth.jpg");
-        max_request_fps_ = declare_parameter<double>("max_request_fps", 2.0);
-        max_request_fps_ = std::max(0.1, max_request_fps_);
+        max_request_fps_.store(std::max(0.1, declare_parameter<double>("max_request_fps", 2.0)));
 
         subscription_ = create_subscription<sensor_msgs::msg::Image>(
             topic_name_,
@@ -161,6 +162,9 @@ public:
         );
 
         last_fps_time_ = now();
+        parameter_callback_handle_ = add_on_set_parameters_callback(
+            std::bind(&Ros2TcpClientNode::OnSetParameters, this, std::placeholders::_1)
+        );
         worker_running_.store(true);
         worker_thread_ = std::thread(&Ros2TcpClientNode::ProcessLoop, this);
 
@@ -170,7 +174,7 @@ public:
             topic_name_.c_str(),
             host_.c_str(),
             static_cast<unsigned>(port_),
-            max_request_fps_
+            max_request_fps_.load()
         );
     }
 
@@ -184,11 +188,19 @@ public:
 
         if (client_)
         {
+            std::lock_guard<std::mutex> client_lock(client_mutex_);
             client_->Close();
         }
     }
 
 private:
+    struct ServerProcessingResult
+    {
+        cv::Mat processed_image;
+        cv::Mat depth_image;
+        std::string result_json;
+    };
+
     void OnImage(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         try
@@ -215,10 +227,9 @@ private:
 
     void ProcessLoop()
     {
-        const auto interval = std::chrono::duration<double>(1.0 / max_request_fps_);
-
         while (worker_running_.load())
         {
+            const auto interval = std::chrono::duration<double>(1.0 / max_request_fps_.load());
             const auto started_at = std::chrono::steady_clock::now();
             ProcessLatestFrame();
 
@@ -238,29 +249,57 @@ private:
     {
         cv::Mat image;
         std_msgs::msg::Header header;
-        bool has_frame = false;
-        {
-            std::lock_guard<std::mutex> lock(frame_mutex_);
-            has_frame = has_frame_;
-            if (has_frame)
-            {
-                image = latest_frame_.clone();
-                header = latest_header_;
-            }
-        }
-
-        if (!has_frame)
+        if (!SnapshotLatestFrame(&image, &header))
         {
             PublishStatus(false, false, 10, "waiting for camera frame");
             return;
         }
 
-        if (!client_)
+        ServerProcessingResult server_result;
+        if (!ProcessFrameWithServer(image, &server_result))
         {
-            client_ = std::make_unique<ris::TcpImageClient>(host_, port_);
+            return;
+        }
+
+        UpdateFps();
+        PublishProcessingResult(header, server_result);
+        WriteDebugImages(server_result);
+    }
+
+    bool SnapshotLatestFrame(cv::Mat* image, std_msgs::msg::Header* header)
+    {
+        if (!image || !header)
+        {
+            return false;
+        }
+
+        std::lock_guard<std::mutex> lock(frame_mutex_);
+        if (!has_frame_)
+        {
+            return false;
+        }
+
+        *image = latest_frame_.clone();
+        *header = latest_header_;
+        return true;
+    }
+
+    bool ProcessFrameWithServer(const cv::Mat& image, ServerProcessingResult* server_result)
+    {
+        if (!server_result)
+        {
+            PublishStatus(false, true, 5, "server_result pointer is null");
+            return false;
         }
 
         std::string error_message;
+        std::lock_guard<std::mutex> client_lock(client_mutex_);
+        if (!client_)
+        {
+            std::lock_guard<std::mutex> config_lock(config_mutex_);
+            client_ = std::make_unique<ris::TcpImageClient>(host_, port_);
+        }
+
         if (!client_->Connect(&error_message))
         {
             RCLCPP_ERROR_THROTTLE(
@@ -272,19 +311,15 @@ private:
             );
             client_->Close();
             PublishStatus(false, true, 1, error_message);
-            return;
+            return false;
         }
 
         const uint32_t request_id = ++request_id_;
-
-        cv::Mat result;
-        cv::Mat depth_result;
-        std::string result_json;
         if (!client_->SendImageWithResultAndDepth(
                 image,
-                &result,
-                &depth_result,
-                &result_json,
+                &server_result->processed_image,
+                &server_result->depth_image,
+                &server_result->result_json,
                 request_id,
                 &error_message))
         {
@@ -297,64 +332,7 @@ private:
             );
             client_->Close();
             PublishStatus(false, true, 2, error_message);
-            return;
-        }
-
-        UpdateFps();
-
-        header.stamp = now();
-        if (header.frame_id.empty())
-        {
-            header.frame_id = "camera";
-        }
-
-        auto processed_msg = cv_bridge::CvImage(header, "bgr8", result).toImageMsg();
-        processed_image_pub_->publish(*processed_msg);
-
-        if (!depth_result.empty())
-        {
-            auto depth_msg = cv_bridge::CvImage(header, "bgr8", depth_result).toImageMsg();
-            depth_image_pub_->publish(*depth_msg);
-        }
-
-        std_msgs::msg::String obstacle_msg;
-        obstacle_msg.data = result_json;
-        obstacle_result_pub_->publish(obstacle_msg);
-
-        std::string metrics_json;
-        if (!ExtractJsonObjectValue(result_json, "metrics", &metrics_json))
-        {
-            metrics_json = "{}";
-        }
-
-        std_msgs::msg::String metrics_msg;
-        metrics_msg.data = metrics_json;
-        metrics_pub_->publish(metrics_msg);
-
-        PublishStatus(true, true, 0, "");
-
-        if (!output_path_.empty() && !cv::imwrite(output_path_, result))
-        {
-            RCLCPP_ERROR_THROTTLE(
-                get_logger(),
-                *get_clock(),
-                2000,
-                "failed to write output image: %s",
-                output_path_.c_str()
-            );
-        }
-
-        if (!depth_output_path_.empty() &&
-            !depth_result.empty() &&
-            !cv::imwrite(depth_output_path_, depth_result))
-        {
-            RCLCPP_ERROR_THROTTLE(
-                get_logger(),
-                *get_clock(),
-                2000,
-                "failed to write depth image: %s",
-                depth_output_path_.c_str()
-            );
+            return false;
         }
 
         RCLCPP_INFO_THROTTLE(
@@ -364,8 +342,88 @@ private:
             "request_id=%u processed_fps=%.2f result_json=%s",
             request_id,
             fps_.load(),
-            result_json.c_str()
+            server_result->result_json.c_str()
         );
+        return true;
+    }
+
+    void PublishProcessingResult(std_msgs::msg::Header header,
+                                 const ServerProcessingResult& server_result)
+    {
+        header.stamp = now();
+        if (header.frame_id.empty())
+        {
+            header.frame_id = "camera";
+        }
+
+        auto processed_msg = cv_bridge::CvImage(
+            header,
+            "bgr8",
+            server_result.processed_image
+        ).toImageMsg();
+        processed_image_pub_->publish(*processed_msg);
+
+        if (!server_result.depth_image.empty())
+        {
+            auto depth_msg = cv_bridge::CvImage(
+                header,
+                "bgr8",
+                server_result.depth_image
+            ).toImageMsg();
+            depth_image_pub_->publish(*depth_msg);
+        }
+
+        std_msgs::msg::String obstacle_msg;
+        obstacle_msg.data = server_result.result_json;
+        obstacle_result_pub_->publish(obstacle_msg);
+
+        std::string metrics_json;
+        if (!ExtractJsonObjectValue(server_result.result_json, "metrics", &metrics_json))
+        {
+            metrics_json = "{}";
+        }
+
+        std_msgs::msg::String metrics_msg;
+        metrics_msg.data = metrics_json;
+        metrics_pub_->publish(metrics_msg);
+
+        PublishStatus(true, true, 0, "");
+    }
+
+    void WriteDebugImages(const ServerProcessingResult& server_result)
+    {
+        std::string output_path;
+        std::string depth_output_path;
+        {
+            std::lock_guard<std::mutex> config_lock(config_mutex_);
+            output_path = output_path_;
+            depth_output_path = depth_output_path_;
+        }
+
+        if (!output_path.empty() &&
+            !cv::imwrite(output_path, server_result.processed_image))
+        {
+            RCLCPP_ERROR_THROTTLE(
+                get_logger(),
+                *get_clock(),
+                2000,
+                "failed to write output image: %s",
+                output_path.c_str()
+            );
+        }
+
+        if (!depth_output_path.empty() &&
+            !server_result.depth_image.empty() &&
+            !cv::imwrite(depth_output_path, server_result.depth_image))
+        {
+            RCLCPP_ERROR_THROTTLE(
+                get_logger(),
+                *get_clock(),
+                2000,
+                "failed to write depth image: %s",
+                depth_output_path.c_str()
+            );
+        }
     }
 
     void UpdateFps()
@@ -392,7 +450,7 @@ private:
         oss << "\"server_connected\":" << (server_connected ? "true" : "false") << ",";
         oss << "\"camera_active\":" << (camera_active ? "true" : "false") << ",";
         oss << "\"fps\":" << fps_.load() << ",";
-        oss << "\"max_request_fps\":" << max_request_fps_ << ",";
+        oss << "\"max_request_fps\":" << max_request_fps_.load() << ",";
         oss << "\"error_code\":" << error_code << ",";
         oss << "\"error_message\":\"" << JsonEscape(error_message) << "\"";
         oss << "}";
@@ -402,18 +460,139 @@ private:
         status_pub_->publish(status_msg);
     }
 
+    rcl_interfaces::msg::SetParametersResult OnSetParameters(
+        const std::vector<rclcpp::Parameter>& parameters)
+    {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+
+        for (const auto& parameter : parameters)
+        {
+            const std::string& name = parameter.get_name();
+            if (name == "host" || name == "topic_name")
+            {
+                if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_STRING ||
+                    parameter.as_string().empty())
+                {
+                    result.successful = false;
+                    result.reason = name + " must be a non-empty string";
+                    return result;
+                }
+            }
+            else if (name == "output_path" || name == "depth_output_path")
+            {
+                if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_STRING)
+                {
+                    result.successful = false;
+                    result.reason = name + " must be a string";
+                    return result;
+                }
+            }
+            else if (name == "port")
+            {
+                if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER ||
+                    parameter.as_int() <= 0 ||
+                    parameter.as_int() > 65535)
+                {
+                    result.successful = false;
+                    result.reason = "port must be in range 1..65535";
+                    return result;
+                }
+            }
+            else if (name == "max_request_fps")
+            {
+                if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE ||
+                    parameter.as_double() <= 0.0)
+                {
+                    result.successful = false;
+                    result.reason = "max_request_fps must be a positive double";
+                    return result;
+                }
+            }
+        }
+
+        bool reset_client = false;
+        bool recreate_subscription = false;
+        {
+            std::lock_guard<std::mutex> config_lock(config_mutex_);
+            for (const auto& parameter : parameters)
+            {
+                const std::string& name = parameter.get_name();
+                if (name == "host")
+                {
+                    host_ = parameter.as_string();
+                    reset_client = true;
+                }
+                else if (name == "port")
+                {
+                    port_ = static_cast<uint16_t>(parameter.as_int());
+                    reset_client = true;
+                }
+                else if (name == "topic_name")
+                {
+                    topic_name_ = parameter.as_string();
+                    recreate_subscription = true;
+                }
+                else if (name == "output_path")
+                {
+                    output_path_ = parameter.as_string();
+                }
+                else if (name == "depth_output_path")
+                {
+                    depth_output_path_ = parameter.as_string();
+                }
+                else if (name == "max_request_fps")
+                {
+                    max_request_fps_.store(std::max(0.1, parameter.as_double()));
+                }
+            }
+        }
+
+        if (recreate_subscription)
+        {
+            subscription_ = create_subscription<sensor_msgs::msg::Image>(
+                topic_name_,
+                10,
+                std::bind(&Ros2TcpClientNode::OnImage, this, std::placeholders::_1)
+            );
+        }
+
+        if (reset_client)
+        {
+            std::lock_guard<std::mutex> client_lock(client_mutex_);
+            if (client_)
+            {
+                client_->Close();
+                client_.reset();
+            }
+        }
+
+        RCLCPP_INFO(
+            get_logger(),
+            "updated parameters: host=%s port=%u topic_name=%s max_request_fps=%.2f",
+            host_.c_str(),
+            static_cast<unsigned>(port_),
+            topic_name_.c_str(),
+            max_request_fps_.load()
+        );
+
+        return result;
+    }
+
     std::string host_;
     uint16_t port_{9999};
     std::string topic_name_;
     std::string output_path_;
     std::string depth_output_path_;
-    double max_request_fps_{2.0};
+    std::atomic<double> max_request_fps_{2.0};
     uint32_t request_id_{0};
     std::atomic<double> fps_{0.0};
     int frames_since_fps_update_{0};
     rclcpp::Time last_fps_time_;
     std::atomic<bool> worker_running_{false};
     std::thread worker_thread_;
+    std::mutex config_mutex_;
+    std::mutex client_mutex_;
     std::mutex frame_mutex_;
     cv::Mat latest_frame_;
     std_msgs::msg::Header latest_header_;
@@ -426,6 +605,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr obstacle_result_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr metrics_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };
 
 int main(int argc, char** argv)

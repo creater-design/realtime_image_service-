@@ -1,46 +1,145 @@
 #include <cstdint>
+#include <exception>
+#include <iostream>
 #include <string>
+
+#include "realtime_image_service/image_server_config.hpp"
 #include "realtime_image_service/image_tcp_server.hpp"  
 #include "realtime_image_service/logger.hpp"
 
+namespace
+{
+    void PrintUsage(const char* program)
+    {
+        std::cout
+            << "Usage: " << program << " [options]\n"
+            << "Options:\n"
+            << "  --config <path>        YAML config file\n"
+            << "  --port <port>          image_server listen port\n"
+            << "  --no-depth-server      use pseudo depth instead of depth_server\n"
+            << "  --depth-host <host>    depth_server host\n"
+            << "  --depth-port <port>    depth_server port\n";
+    }
+
+    bool ParsePort(const std::string& text, uint16_t* port, std::string* error_message)
+    {
+        if (!port)
+        {
+            return false;
+        }
+
+        int value = 0;
+        try
+        {
+            value = std::stoi(text);
+        }
+        catch (const std::exception&)
+        {
+            if (error_message)
+            {
+                *error_message = "invalid port: " + text;
+            }
+            return false;
+        }
+        if (value <= 0 || value > 65535)
+        {
+            if (error_message)
+            {
+                *error_message = "port out of range: " + text;
+            }
+            return false;
+        }
+
+        *port = static_cast<uint16_t>(value);
+        return true;
+    }
+}
+
 int main(int argc, char const *argv[])
 {
-    uint16_t port = 9999; // 默认端口号
-    bool use_cuda = true;
-    bool use_depth_server = true;
-    std::string depth_host = "127.0.0.1";
-    uint16_t depth_port = 18080;
+    ris::ImageServerConfig config;
+    std::string config_path;
 
-    for (int i = 1; i < argc; ++i) 
+    for (int i = 1; i < argc; ++i)
     {
         const std::string arg = argv[i];
-        if (arg == "--port" && i + 1 < argc)
+        if (arg == "--config" && i + 1 < argc)
         {
-            // std::stoi() 把字符串转成整数
-            port = std::stoi(argv[++i]);
+            config_path = argv[++i];
         }
-        else if (arg == "--cpu")
+        else if (arg == "--help" || arg == "-h")
         {
-            use_cuda = false;
+            PrintUsage(argv[0]);
+            return 0;
+        }
+    }
+
+    if (!config_path.empty())
+    {
+        std::string error_message;
+        if (!ris::LoadImageServerConfigFromYaml(config_path, &config, &error_message))
+        {
+            RIS_LOG_ERROR(error_message);
+            return 1;
+        }
+    }
+
+    for (int i = 1; i < argc; ++i)
+    {
+        const std::string arg = argv[i];
+        std::string error_message;
+        if (arg == "--config" && i + 1 < argc)
+        {
+            ++i;
+        }
+        else if (arg == "--port" && i + 1 < argc)
+        {
+            if (!ParsePort(argv[++i], &config.port, &error_message))
+            {
+                RIS_LOG_ERROR(error_message);
+                return 1;
+            }
         }
         else if (arg == "--no-depth-server")
         {
-            use_depth_server = false;
+            config.use_depth_server = false;
         }
         else if (arg == "--depth-host" && i + 1 < argc)
         {
-            depth_host = argv[++i];
+            config.depth_host = argv[++i];
         }
         else if (arg == "--depth-port" && i + 1 < argc)
         {
-            depth_port = static_cast<uint16_t>(std::stoi(argv[++i]));
+            if (!ParsePort(argv[++i], &config.depth_port, &error_message))
+            {
+                RIS_LOG_ERROR(error_message);
+                return 1;
+            }
+        }
+        else if (arg == "--help" || arg == "-h")
+        {
+            // Already handled before config loading.
+        }
+        else
+        {
+            RIS_LOG_ERROR("unknown or incomplete argument: " + arg);
+            PrintUsage(argv[0]);
+            return 1;
         }
     }
 
     muduo::net::EventLoop loop;
-    muduo::net::InetAddress address(port);
-    ris::ImageTcpServer server(&loop, address, use_cuda, use_depth_server, depth_host, depth_port);
-    RIS_LOG_INFO("image_server listening on port " + std::to_string(port));
+    muduo::net::InetAddress address(config.port);
+    ris::ImageTcpServer server(
+        &loop,
+        address,
+        config.use_depth_server,
+        config.depth_host,
+        config.depth_port,
+        config.risk_config
+    );
+    RIS_LOG_INFO("image_server config: " + ris::BuildImageServerConfigLog(config));
+    RIS_LOG_INFO("image_server listening on port " + std::to_string(config.port));
     server.start(); // 启动服务器，开始监听端口，进入事件循环
     loop.loop(); // 启动事件循环，让程序一直卡在这里，不停地监听网络事件，然后分发给对应的回调函数。
     return 0;

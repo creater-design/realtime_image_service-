@@ -11,51 +11,6 @@ namespace ris
 {
     namespace
     {
-        // ================================
-        // 1. 风险判断相关参数
-        // ================================
-
-        // 有效深度最小值
-        // 太小的值可能是无效点、噪声点
-        constexpr float kMinValidDepth = 1e-6f;
-
-        // 有效深度最大值
-        // 这里假设 depth_norm 已经归一化到 0.0 ~ 1.0
-        constexpr float kMaxValidDepth = 1.0f;
-
-        // 近距离阈值
-        // 数值越小表示越近
-        // value < 0.30f 的点会被认为是近距离候选障碍物
-        constexpr float kNearDepthThreshold = 0.30f;
-
-        // 停车阈值
-        // d05_depth < 0.22f 时，认为距离非常近，需要 stop
-        constexpr float kStopDepthThreshold = 0.22f;
-
-        // 减速阈值
-        // d05_depth < 0.35f 时，认为需要 slow_down
-        constexpr float kSlowDepthThreshold = 0.35f;
-
-        // 最小有效深度比例
-        // ROI 中有效深度太少时，不应该强行判断安全或危险
-        constexpr float kMinValidRatio = 0.20f;
-
-        // 高风险最小障碍物面积比例
-        // 连通域过滤后，障碍物区域至少占 ROI 的 2%
-        constexpr float kHighMinObstacleAreaRatio = 0.02f;
-
-        // 中风险最小障碍物面积比例
-        // 连通域过滤后，障碍物区域至少占 ROI 的 1%
-        constexpr float kMediumMinObstacleAreaRatio = 0.01f;
-
-        // 连通域最小面积比例
-        // 小于这个比例的连通域会被认为是噪声块
-        constexpr float kMinComponentAreaRatio = 0.002f;
-
-        // 形态学核大小
-        // 3x3 通常适合实时视觉任务
-        constexpr int kMorphKernelSize = 3;
-
         // 计算 5% 分位数
         // 作用：
         //   不直接取最小深度，避免一个噪声点导致误判
@@ -86,6 +41,96 @@ namespace ris
 
             return (*values)[index];
         }
+    }
+
+    bool ValidateObstacleRiskConfig(const ObstacleRiskConfig& config,
+                                    std::string* error_message)
+    {
+        const auto fail = [error_message](const std::string& message) {
+            if (error_message)
+            {
+                *error_message = message;
+            }
+            return false;
+        };
+
+        if (config.roi_x_ratio < 0.0f || config.roi_x_ratio >= 1.0f)
+        {
+            return fail("roi_x_ratio must be in [0.0, 1.0)");
+        }
+        if (config.roi_y_ratio < 0.0f || config.roi_y_ratio >= 1.0f)
+        {
+            return fail("roi_y_ratio must be in [0.0, 1.0)");
+        }
+        if (config.roi_width_ratio <= 0.0f || config.roi_width_ratio > 1.0f)
+        {
+            return fail("roi_width_ratio must be in (0.0, 1.0]");
+        }
+        if (config.roi_height_ratio <= 0.0f || config.roi_height_ratio > 1.0f)
+        {
+            return fail("roi_height_ratio must be in (0.0, 1.0]");
+        }
+        if (config.roi_x_ratio + config.roi_width_ratio > 1.0f)
+        {
+            return fail("roi_x_ratio + roi_width_ratio must be <= 1.0");
+        }
+        if (config.roi_y_ratio + config.roi_height_ratio > 1.0f)
+        {
+            return fail("roi_y_ratio + roi_height_ratio must be <= 1.0");
+        }
+        if (config.min_valid_depth < 0.0f ||
+            config.max_valid_depth <= config.min_valid_depth ||
+            config.max_valid_depth > 1.0f)
+        {
+            return fail("depth valid range must satisfy 0 <= min_valid_depth < max_valid_depth <= 1");
+        }
+        if (config.near_depth_threshold <= config.min_valid_depth ||
+            config.near_depth_threshold >= config.max_valid_depth)
+        {
+            return fail("near_depth_threshold must be inside the valid depth range");
+        }
+        if (config.stop_depth_threshold <= config.min_valid_depth ||
+            config.stop_depth_threshold >= config.max_valid_depth ||
+            config.slow_depth_threshold <= config.stop_depth_threshold ||
+            config.slow_depth_threshold >= config.max_valid_depth)
+        {
+            return fail("depth thresholds must satisfy min < stop < slow < max");
+        }
+        if (config.min_valid_ratio < 0.0f || config.min_valid_ratio > 1.0f ||
+            config.high_min_obstacle_area_ratio < 0.0f ||
+            config.high_min_obstacle_area_ratio > 1.0f ||
+            config.medium_min_obstacle_area_ratio < 0.0f ||
+            config.medium_min_obstacle_area_ratio > 1.0f ||
+            config.min_component_area_ratio < 0.0f ||
+            config.min_component_area_ratio > 1.0f)
+        {
+            return fail("ratio thresholds must be in [0.0, 1.0]");
+        }
+        if (config.high_min_obstacle_area_ratio < config.medium_min_obstacle_area_ratio)
+        {
+            return fail("high_min_obstacle_area_ratio must be >= medium_min_obstacle_area_ratio");
+        }
+        if (config.morph_kernel_size <= 0 || config.morph_kernel_size % 2 == 0)
+        {
+            return fail("morph_kernel_size must be a positive odd integer");
+        }
+
+        return true;
+    }
+
+    ObstacleRiskAnalyzer::ObstacleRiskAnalyzer(ObstacleRiskConfig config)
+    : config_(config)
+    {
+        std::string error_message;
+        if (!ValidateObstacleRiskConfig(config_, &error_message))
+        {
+            config_ = ObstacleRiskConfig{};
+        }
+    }
+
+    const ObstacleRiskConfig& ObstacleRiskAnalyzer::config() const
+    {
+        return config_;
     }
 
     bool ObstacleRiskAnalyzer::Analyze(const cv::Mat& depth_norm,
@@ -156,20 +201,11 @@ namespace ris
             return false;
         }
 
-        // ================================
-        // 4. 设置机器人前方 ROI
-        // ================================
-        // x 从图像宽度的 25% 处开始
-        // y 从图像高度的 45% 处开始
-        // w 为图像宽度的 50%
-        // h 为图像高度的 45%
-        //
-        // 这个区域大致表示画面中间偏下的位置，
-        // 通常对应机器人前方地面和近处障碍物区域。
-        result->roi_x = static_cast<int>(static_cast<float>(width) * 0.25f);
-        result->roi_y = static_cast<int>(static_cast<float>(height) * 0.45f);
-        result->roi_w = static_cast<int>(static_cast<float>(width) * 0.50f);
-        result->roi_h = static_cast<int>(static_cast<float>(height) * 0.45f);
+        // ROI is configured by ratio. The default covers the lower half of the frame.
+        result->roi_x = static_cast<int>(static_cast<float>(width) * config_.roi_x_ratio);
+        result->roi_y = static_cast<int>(static_cast<float>(height) * config_.roi_y_ratio);
+        result->roi_w = static_cast<int>(static_cast<float>(width) * config_.roi_width_ratio);
+        result->roi_h = static_cast<int>(static_cast<float>(height) * config_.roi_height_ratio);
 
         // 防止 ROI 越界
         result->roi_x = std::clamp(result->roi_x, 0, width - 1);
@@ -226,7 +262,7 @@ namespace ris
                 }
 
                 // 过滤无效深度
-                if (value <= kMinValidDepth || value > kMaxValidDepth)
+                if (value <= config_.min_valid_depth || value > config_.max_valid_depth)
                 {
                     continue;
                 }
@@ -234,7 +270,7 @@ namespace ris
                 ++valid_count;
 
                 // 小于近距离阈值，认为是近距离候选障碍点
-                if (value < kNearDepthThreshold)
+                if (value < config_.near_depth_threshold)
                 {
                     mask_row[x] = 255;
                     ++raw_near_count;
@@ -260,7 +296,7 @@ namespace ris
 
         // 有效深度太少，判断为 unknown
         // 不建议在深度信息严重不足时强行输出 low
-        if (result->valid_ratio < kMinValidRatio)
+        if (result->valid_ratio < config_.min_valid_ratio)
         {
             result->obstacle = false;
             result->risk_level = "unknown";
@@ -303,7 +339,7 @@ namespace ris
         // 闭运算：先膨胀再腐蚀，用于连接小断裂区域
         const cv::Mat kernel = cv::getStructuringElement(
             cv::MORPH_RECT,
-            cv::Size(kMorphKernelSize, kMorphKernelSize)
+            cv::Size(config_.morph_kernel_size, config_.morph_kernel_size)
         );
 
         cv::Mat clean_mask;
@@ -338,7 +374,7 @@ namespace ris
 
         const int min_component_area =
             std::max(10, static_cast<int>(static_cast<float>(roi_total_pixels) *
-                                          kMinComponentAreaRatio));
+                                          config_.min_component_area_ratio));
 
         cv::Mat filtered_mask = cv::Mat::zeros(clean_mask.size(), CV_8UC1);
 
@@ -400,7 +436,7 @@ namespace ris
                     continue;
                 }
 
-                if (value <= kMinValidDepth || value > kMaxValidDepth)
+                if (value <= config_.min_valid_depth || value > config_.max_valid_depth)
                 {
                     continue;
                 }
@@ -426,15 +462,15 @@ namespace ris
         // ================================
         // 10. 按企业工程常用的 stop / slow / keep 逻辑分级
         // ================================
-        if (result->obstacle_area_ratio > kHighMinObstacleAreaRatio &&
-            result->d05_depth < kStopDepthThreshold)
+        if (result->obstacle_area_ratio > config_.high_min_obstacle_area_ratio &&
+            result->d05_depth < config_.stop_depth_threshold)
         {
             result->obstacle = true;
             result->risk_level = "high";
             result->suggest_action = "stop";
         }
-        else if (result->obstacle_area_ratio > kMediumMinObstacleAreaRatio &&
-                 result->d05_depth < kSlowDepthThreshold)
+        else if (result->obstacle_area_ratio > config_.medium_min_obstacle_area_ratio &&
+                 result->d05_depth < config_.slow_depth_threshold)
         {
             result->obstacle = true;
             result->risk_level = "medium";
@@ -460,8 +496,8 @@ namespace ris
         // 注意：
         //   归一化深度中，数值越小表示越近。
         const float distance_risk =
-            std::clamp((kSlowDepthThreshold - result->d05_depth) /
-                       kSlowDepthThreshold,
+            std::clamp((config_.slow_depth_threshold - result->d05_depth) /
+                       config_.slow_depth_threshold,
                        0.0f,
                        1.0f);
 

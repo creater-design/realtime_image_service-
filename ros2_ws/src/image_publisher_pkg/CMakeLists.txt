@@ -13,7 +13,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -27,34 +27,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# 设置外部项目路径
 set(RIS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 
-# 包含目录  
 include_directories(
   include
   ${OpenCV_INCLUDE_DIRS}
   ${RIS_ROOT}/include
-)
-
-# 添加可执行文件
-add_executable(image_file_publisher 
-  src/image_file_publisher.cpp
-)
-
-# 链接内部库
-ament_target_dependencies(
-  image_file_publisher
-  rclcpp
-  sensor_msgs
-  std_msgs
-  cv_bridge
-)
-
-# 链接外部库
-target_link_libraries(
-  image_file_publisher
-  ${OpenCV_LIBS}
 )
 
 add_executable(ros2_tcp_client_node
@@ -78,6 +56,27 @@ target_link_libraries(
   ${OpenCV_LIBS}
 )
 
+add_executable(network_camera_node
+  src/network_camera_node.cpp
+)
+
+target_include_directories(network_camera_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(
+  network_camera_node
+  rclcpp
+  sensor_msgs
+  cv_bridge
+)
+
+target_link_libraries(
+  network_camera_node
+  ${OpenCV_LIBS}
+)
+
 add_executable(safety_controller_node
   src/safety_controller_node.cpp
 )
@@ -91,11 +90,11 @@ ament_target_dependencies(
 
 install(
   TARGETS
-    image_file_publisher
     ros2_tcp_client_node
+    network_camera_node
     safety_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
 ament_package()

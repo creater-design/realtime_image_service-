@@ -5,6 +5,7 @@ import os
 import socket
 import struct
 import sys
+import threading
 import traceback
 
 import cv2
@@ -19,12 +20,14 @@ MODEL_CONFIGS = {
 }
 
 
-def recv_exact(conn, size):
+def recv_exact(conn, size, allow_clean_eof=False):
     chunks = []
     remaining = size
     while remaining > 0:
         data = conn.recv(remaining)
         if not data:
+            if allow_clean_eof and remaining == size:
+                return None
             raise RuntimeError("connection closed while receiving")
         chunks.append(data)
         remaining -= len(data)
@@ -35,6 +38,22 @@ def send_response(conn, status, payload):
     conn.sendall(struct.pack("!II", status, len(payload)))
     if payload:
         conn.sendall(payload)
+
+
+def encode_depth(depth_u8, codec, jpeg_quality):
+    if codec == "png":
+        ok, encoded = cv2.imencode(".png", depth_u8)
+    else:
+        ok, encoded = cv2.imencode(
+            ".jpg",
+            depth_u8,
+            [int(cv2.IMWRITE_JPEG_QUALITY), int(jpeg_quality)],
+        )
+
+    if not ok:
+        raise RuntimeError(f"failed to encode depth {codec}")
+
+    return encoded.tobytes()
 
 
 def normalize_depth_for_risk(raw_depth, invert_depth):
@@ -104,6 +123,7 @@ class DepthAnythingBackend:
         self.torch = torch
         self.autocast_enabled = False
         self.autocast_dtype = None
+        self.lock = threading.Lock()
 
         if device == "cuda":
             torch.backends.cudnn.benchmark = True
@@ -173,13 +193,21 @@ class DepthAnythingBackend:
         print(f"[depth_server] warmup finished count={count}", flush=True)
 
     def infer(self, image_bgr):
-        with self.autocast_context():
-            raw_depth = self.model.infer_image(image_bgr, self.input_size)
+        with self.lock:
+            with self.autocast_context():
+                raw_depth = self.model.infer_image(image_bgr, self.input_size)
+
+            if self.device == "cuda":
+                self.torch.cuda.synchronize()
+
         return normalize_depth_for_risk(raw_depth, self.invert_depth)
 
 
-def handle_client(conn, backend):
-    size_bytes = recv_exact(conn, 4)
+def handle_one_request(conn, backend, response_codec, jpeg_quality):
+    size_bytes = recv_exact(conn, 4, allow_clean_eof=True)
+    if size_bytes is None:
+        return False
+
     (image_size,) = struct.unpack("!I", size_bytes)
     if image_size == 0:
         raise RuntimeError("empty image payload")
@@ -191,12 +219,37 @@ def handle_client(conn, backend):
         raise RuntimeError("failed to decode input jpeg")
 
     depth_u8 = backend.infer(image_bgr)
+    send_response(conn, 0, encode_depth(depth_u8, response_codec, jpeg_quality))
+    return True
 
-    ok, encoded = cv2.imencode(".png", depth_u8)
-    if not ok:
-        raise RuntimeError("failed to encode depth png")
 
-    send_response(conn, 0, encoded.tobytes())
+def handle_client(conn, addr, backend, response_codec, jpeg_quality):
+    request_count = 0
+    with conn:
+        try:
+            conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except OSError:
+            pass
+        print(f"[depth_server] client connected: {addr}", flush=True)
+
+        while True:
+            try:
+                if not handle_one_request(conn, backend, response_codec, jpeg_quality):
+                    break
+                request_count += 1
+            except Exception as exc:
+                message = f"{type(exc).__name__}: {exc}"
+                print(f"[depth_server] request from {addr} failed: {message}", flush=True)
+                traceback.print_exc()
+                try:
+                    send_response(conn, 1, message.encode("utf-8"))
+                except Exception:
+                    break
+
+        print(
+            f"[depth_server] client closed: {addr} requests={request_count}",
+            flush=True,
+        )
 
 
 def main():
@@ -211,7 +264,10 @@ def main():
     parser.add_argument("--precision", default="auto", choices=["auto", "fp32", "fp16", "bf16"])
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--no_invert_depth", action="store_true")
+    parser.add_argument("--response_codec", default="jpg", choices=["jpg", "png"])
+    parser.add_argument("--jpeg_quality", type=int, default=90)
     args = parser.parse_args()
+    args.jpeg_quality = max(1, min(100, args.jpeg_quality))
 
     backend = DepthAnythingBackend(
         repo_path=args.repo_path,
@@ -228,21 +284,20 @@ def main():
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((args.host, args.port))
         server.listen(16)
-        print(f"[depth_server] listening on {args.host}:{args.port}", flush=True)
+        print(
+            f"[depth_server] listening on {args.host}:{args.port} "
+            f"response_codec={args.response_codec} jpeg_quality={args.jpeg_quality}",
+            flush=True,
+        )
 
         while True:
             conn, addr = server.accept()
-            with conn:
-                try:
-                    handle_client(conn, backend)
-                except Exception as exc:
-                    message = f"{type(exc).__name__}: {exc}"
-                    print(f"[depth_server] request from {addr} failed: {message}", flush=True)
-                    traceback.print_exc()
-                    try:
-                        send_response(conn, 1, message.encode("utf-8"))
-                    except Exception:
-                        pass
+            thread = threading.Thread(
+                target=handle_client,
+                args=(conn, addr, backend, args.response_codec, args.jpeg_quality),
+                daemon=True,
+            )
+            thread.start()
 
 
 if __name__ == "__main__":
