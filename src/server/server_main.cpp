@@ -137,8 +137,7 @@ int main(int argc, char const *argv[])
         address,
         config.use_depth_server,
         config.depth_host,
-        config.depth_port,
-        config.risk_config
+        config.depth_port
     );
     RIS_LOG_INFO("image_server config: " + ris::BuildImageServerConfigLog(config));
     RIS_LOG_INFO("image_server listening on port " + std::to_string(config.port));

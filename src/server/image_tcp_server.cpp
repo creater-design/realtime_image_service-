@@ -8,7 +8,6 @@
 #include "realtime_image_service/image_codec.hpp"
 #include "realtime_image_service/logger.hpp"
 #include "realtime_image_service/protocol.hpp"
-#include "realtime_image_service/obstacle_risk_analyzer.hpp"
 #include "realtime_image_service/result_json.hpp"
 #include "realtime_image_service/result_payload.hpp"
 
@@ -16,12 +15,10 @@ namespace ris
 {
     namespace
     {
-        cv::Mat BuildDepthVisualization(const cv::Mat& depth_norm,
-                                        const ObstacleResult& obstacle_result,
-                                        const ObstacleRiskAnalyzer& analyzer)
+        cv::Mat BuildDepthVisualization(const cv::Mat& depth_norm)
         {
-            // depth_norm follows the risk analyzer convention: smaller value means closer.
-            // The color map is inverted only for visualization so close regions look hotter.
+            // depth_norm uses smaller values for closer regions. The display is inverted
+            // so nearby content appears hotter in the color map.
             cv::Mat depth_float;
             if (depth_norm.type() == CV_32FC1)
             {
@@ -42,8 +39,6 @@ namespace ris
 
             cv::Mat depth_color;
             cv::applyColorMap(depth_u8, depth_color, cv::COLORMAP_TURBO);
-
-            analyzer.DrawResult(obstacle_result, &depth_color);
             return depth_color;
         }
     }
@@ -52,13 +47,11 @@ namespace ris
                                    const muduo::net::InetAddress& address,
                                    bool use_depth_server,
                                    std::string depth_host,
-                                   uint16_t depth_port,
-                                   ObstacleRiskConfig risk_config)
+                                   uint16_t depth_port)
     : server_(loop, address, "ImageTcpServer")
     , use_depth_server_(use_depth_server)
     , depth_host_(std::move(depth_host))
     , depth_port_(depth_port)
-    , risk_analyzer_(risk_config)
     {
         if (use_depth_server_)
         {
@@ -153,8 +146,8 @@ namespace ris
         RequestMetrics request_metrics;
         ImageServiceStageMetrics stage_metrics;
 
-        // Keep the server-side pipeline explicit: decode request -> estimate depth ->
-        // analyze risk -> package all artifacts into one response payload.
+        // Server pipeline: decode request -> estimate depth -> render depth image ->
+        // package images and metrics into one response payload.
         if (!DecodeRequestImage(payload, &input, &request_metrics, &error_message))
         {
             SendError(conn, request_id, error_message);
@@ -167,17 +160,9 @@ namespace ris
             return;
         }
 
-        ObstacleResult obstacle_result;
-        if (!AnalyzeObstacleRisk(depth_norm, &obstacle_result, &stage_metrics, &error_message))
-        {
-            SendError(conn, request_id, error_message);
-            return;
-        }
-
         ImageResponseArtifacts artifacts;
         if (!BuildResponseArtifacts(input,
                                     depth_norm,
-                                    obstacle_result,
                                     request_begin,
                                     &request_metrics,
                                     stage_metrics,
@@ -258,29 +243,8 @@ namespace ris
         return true;
     }
 
-    bool ImageTcpServer::AnalyzeObstacleRisk(const cv::Mat& depth_norm,
-                                             ObstacleResult* obstacle_result,
-                                             ImageServiceStageMetrics* stage_metrics,
-                                             std::string* error_message) const
-    {
-        if (!obstacle_result || !stage_metrics)
-        {
-            if (error_message) *error_message = "AnalyzeObstacleRisk received null output";
-            return false;
-        }
-
-        const int64_t risk_begin = NowUs();
-        if (!risk_analyzer_.Analyze(depth_norm, obstacle_result, error_message))
-        {
-            return false;
-        }
-        stage_metrics->risk_us = NowUs() - risk_begin;
-        return true;
-    }
-
     bool ImageTcpServer::BuildResponseArtifacts(const cv::Mat& input,
                                                 const cv::Mat& depth_norm,
-                                                const ObstacleResult& obstacle_result,
                                                 int64_t request_begin_us,
                                                 RequestMetrics* request_metrics,
                                                 const ImageServiceStageMetrics& stage_metrics,
@@ -294,18 +258,11 @@ namespace ris
         }
 
         *artifacts = ImageResponseArtifacts{};
-        artifacts->obstacle_result = obstacle_result;
 
-        // The response contains both human-facing images and machine-readable JSON.
-        // ROS2 clients can publish the images while controllers consume the JSON.
+        // The response contains the original image, the rendered depth view, and
+        // machine-readable timing metrics for ROS2 observability.
         cv::Mat output = input.clone();
-        risk_analyzer_.DrawResult(artifacts->obstacle_result, &output);
-
-        cv::Mat depth_visual = BuildDepthVisualization(
-            depth_norm,
-            artifacts->obstacle_result,
-            risk_analyzer_
-        );
+        cv::Mat depth_visual = BuildDepthVisualization(depth_norm);
 
         std::vector<uint8_t> encoded;
         std::vector<uint8_t> depth_encoded;
@@ -326,13 +283,14 @@ namespace ris
         ImageServiceMetrics service_metrics;
         service_metrics.backend = use_depth_server_ ? "depth_anything_v2" : "pseudo_depth";
         service_metrics.decode_us = request_metrics->decode_us;
-        service_metrics.preprocess_us = stage_metrics.depth_us;
-        service_metrics.risk_us = stage_metrics.risk_us;
+        service_metrics.depth_us = stage_metrics.depth_us;
         service_metrics.encode_us = request_metrics->encode_us;
         service_metrics.total_us = request_metrics->total_us;
 
-        const std::string json = BuildObstacleResultJson(
-            artifacts->obstacle_result,
+        const std::string json = BuildImageServiceResultJson(
+            input.cols,
+            input.rows,
+            !depth_encoded.empty(),
             service_metrics
         );
 
@@ -357,10 +315,6 @@ namespace ris
             " input=" + std::to_string(input.cols) + "x" + std::to_string(input.rows) +
             " output_bytes=" + std::to_string(artifacts.output_bytes) +
             " depth_bytes=" + std::to_string(artifacts.depth_bytes) +
-            " risk_level=" + artifacts.obstacle_result.risk_level +
-            " action=" + artifacts.obstacle_result.suggest_action +
-            " near_ratio=" + std::to_string(artifacts.obstacle_result.near_ratio) +
-            " confidence=" + std::to_string(artifacts.obstacle_result.confidence) +
             " " + BuildMetricsLog(request_metrics, stage_metrics));
     }
 
@@ -379,7 +333,6 @@ namespace ris
         return "backend=" + std::string(use_depth_server_ ? "depth_anything_v2" : "pseudo_depth") +
                " decode_us=" + std::to_string(request_metrics.decode_us) +
                " depth_us=" + std::to_string(stage_metrics.depth_us) +
-               " risk_us=" + std::to_string(stage_metrics.risk_us) +
                " encode_us=" + std::to_string(request_metrics.encode_us) +
                " total_us=" + std::to_string(request_metrics.total_us);
     }

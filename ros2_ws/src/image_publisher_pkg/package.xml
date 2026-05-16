@@ -3,14 +3,13 @@
 <package format="3">
   <name>image_publisher_pkg</name>
   <version>0.0.0</version>
-  <description>Network camera based ROS2 image pipeline for monocular obstacle risk perception.</description>
+  <description>Network camera based ROS2 pipeline for real-time monocular depth visualization.</description>
   <maintainer email="2029733423@qq.com">wzq</maintainer>
   <license>Apache-2.0</license>
 
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>opencv</depend>
   

@@ -60,7 +60,7 @@ def encode_depth(depth_u8, codec, jpeg_quality):
     return encoded.tobytes()
 
 
-def normalize_depth_for_risk(raw_depth, invert_depth):
+def normalize_depth_for_display(raw_depth, invert_depth):
     depth = raw_depth.astype(np.float32)
     finite_mask = np.isfinite(depth)
     if not finite_mask.any():
@@ -78,8 +78,8 @@ def normalize_depth_for_risk(raw_depth, invert_depth):
     norm = np.clip(norm, 0.0, 1.0)
 
     # Depth Anything V2 relative output is commonly used like inverse depth:
-    # larger values tend to mean closer regions. The C++ ROI analyzer expects
-    # smaller values to mean closer, so invert by default.
+    # larger values tend to mean closer regions. The C++ renderer expects
+    # smaller values to mean closer, then inverts only for the color map.
     if invert_depth:
         norm = 1.0 - norm
 
@@ -221,7 +221,7 @@ class PyTorchDepthAnythingBackend:
             if self.device == "cuda":
                 self.torch.cuda.synchronize()
 
-        return normalize_depth_for_risk(raw_depth, self.invert_depth)
+        return normalize_depth_for_display(raw_depth, self.invert_depth)
 
 
 class OnnxRuntimeDepthBackend:
@@ -330,7 +330,7 @@ class OnnxRuntimeDepthBackend:
         if raw_depth.shape[:2] != (original_h, original_w):
             raw_depth = cv2.resize(raw_depth, (original_w, original_h), interpolation=cv2.INTER_CUBIC)
 
-        return normalize_depth_for_risk(raw_depth, self.invert_depth)
+        return normalize_depth_for_display(raw_depth, self.invert_depth)
 
 
 def create_backend(args):

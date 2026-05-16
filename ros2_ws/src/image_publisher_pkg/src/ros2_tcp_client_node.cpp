@@ -1,25 +1,6 @@
-#include <algorithm>
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <cstdint>
-#include <functional>
-#include <memory>
-#include <mutex>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <vector>
-
 #include <cv_bridge/cv_bridge.h>
-#include <opencv2/opencv.hpp>
-#include <rcl_interfaces/msg/set_parameters_result.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <std_msgs/msg/header.hpp>
-#include <std_msgs/msg/string.hpp>
 
-#include "realtime_image_service/tcp_image_client.hpp"
+#include "image_publisher_pkg/ros2_tcp_client_node.hpp"
 
 namespace
 {
@@ -120,10 +101,8 @@ namespace
     }
 }
 
-class Ros2TcpClientNode : public rclcpp::Node
-{
-public:
-    Ros2TcpClientNode()
+
+Ros2TcpClientNode::Ros2TcpClientNode()
     : Node("ros2_tcp_client_node")
     {
         host_ = declare_parameter<std::string>("host", "127.0.0.1");
@@ -149,8 +128,8 @@ public:
             rclcpp::SensorDataQoS()
         );
 
-        obstacle_result_pub_ = create_publisher<std_msgs::msg::String>(
-            "/obstacle_result",
+        result_pub_ = create_publisher<std_msgs::msg::String>(
+            "/image_service/result",
             10
         );
 
@@ -181,7 +160,7 @@ public:
         );
     }
 
-    ~Ros2TcpClientNode() override
+Ros2TcpClientNode::~Ros2TcpClientNode()
     {
         worker_running_.store(false);
         frame_cv_.notify_all();
@@ -197,22 +176,7 @@ public:
         }
     }
 
-private:
-    struct ServerProcessingResult
-    {
-        cv::Mat processed_image;
-        cv::Mat depth_image;
-        std::string result_json;
-    };
-
-    struct FrameSnapshot
-    {
-        cv::Mat image;
-        std_msgs::msg::Header header;
-        uint64_t sequence{0};
-    };
-
-    void OnImage(const sensor_msgs::msg::Image::SharedPtr msg)
+void Ros2TcpClientNode::OnImage(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         try
         {
@@ -240,7 +204,7 @@ private:
         }
     }
 
-    void ProcessLoop()
+    void Ros2TcpClientNode::ProcessLoop()
     {
         auto next_allowed_time = std::chrono::steady_clock::now();
         while (worker_running_.load())
@@ -261,8 +225,8 @@ private:
         }
     }
 
-    bool WaitForNextFrame(std::chrono::steady_clock::time_point next_allowed_time,
-                          FrameSnapshot* snapshot)
+bool Ros2TcpClientNode::WaitForNextFrame(std::chrono::steady_clock::time_point next_allowed_time,
+                        FrameSnapshot* snapshot)
     {
         if (!snapshot)
         {
@@ -304,18 +268,18 @@ private:
         return true;
     }
 
-    void ProcessFrame(const cv::Mat& image, const std_msgs::msg::Header& header)
+void Ros2TcpClientNode::ProcessFrame(const cv::Mat& image, const std_msgs::msg::Header& header)
+{
+    ServerProcessingResult server_result;
+    if (!ProcessFrameWithServer(image, &server_result))
     {
-        ServerProcessingResult server_result;
-        if (!ProcessFrameWithServer(image, &server_result))
-        {
-            return;
-        }
-
-        UpdateFps();
-        PublishProcessingResult(header, server_result);
-        WriteDebugImages(server_result);
+        return;
     }
+
+    UpdateFps();
+    PublishProcessingResult(header, server_result);
+    WriteDebugImages(server_result);
+}
 
     bool ProcessFrameWithServer(const cv::Mat& image, ServerProcessingResult* server_result)
     {
@@ -374,7 +338,7 @@ private:
             get_logger(),
             *get_clock(),
             2000,
-            "request_id=%u processed_fps=%.2f result_json=%s",
+            "request_id=%u processed_fps=%.2f service_result=%s",
             request_id,
             fps_.load(),
             server_result->result_json.c_str()
@@ -408,9 +372,9 @@ private:
             depth_image_pub_->publish(*depth_msg);
         }
 
-        std_msgs::msg::String obstacle_msg;
-        obstacle_msg.data = server_result.result_json;
-        obstacle_result_pub_->publish(obstacle_msg);
+        std_msgs::msg::String result_msg;
+        result_msg.data = server_result.result_json;
+        result_pub_->publish(result_msg);
 
         std::string metrics_json;
         if (!ExtractJsonObjectValue(server_result.result_json, "metrics", &metrics_json))
@@ -646,7 +610,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr processed_image_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_image_pub_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr obstacle_result_pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr result_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr metrics_pub_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;

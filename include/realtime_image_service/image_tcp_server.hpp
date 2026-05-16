@@ -15,7 +15,6 @@
 #include <muduo/net/TcpServer.h>
 
 #include "realtime_image_service/depth_estimator.hpp"
-#include "realtime_image_service/obstacle_risk_analyzer.hpp"
 
 namespace ris
 {
@@ -29,7 +28,6 @@ namespace ris
     struct ImageServiceStageMetrics
     {
         int64_t depth_us = 0;
-        int64_t risk_us = 0;
     };
 
     class ImageTcpServer
@@ -39,8 +37,7 @@ namespace ris
                        const muduo::net::InetAddress& address,
                        bool use_depth_server,
                        std::string depth_host,
-                       uint16_t depth_port,
-                       ObstacleRiskConfig risk_config = {});
+                       uint16_t depth_port);
 
         ~ImageTcpServer() = default;
         void start();
@@ -51,7 +48,6 @@ namespace ris
             std::vector<uint8_t> result_payload;
             std::size_t output_bytes = 0;
             std::size_t depth_bytes = 0;
-            ObstacleResult obstacle_result;
         };
 
         void onConnection(const muduo::net::TcpConnectionPtr& conn);
@@ -69,13 +65,8 @@ namespace ris
                                    cv::Mat* depth_norm,
                                    ImageServiceStageMetrics* stage_metrics,
                                    std::string* error_message);
-        bool AnalyzeObstacleRisk(const cv::Mat& depth_norm,
-                                 ObstacleResult* obstacle_result,
-                                 ImageServiceStageMetrics* stage_metrics,
-                                 std::string* error_message) const;
         bool BuildResponseArtifacts(const cv::Mat& input,
                                     const cv::Mat& depth_norm,
-                                    const ObstacleResult& obstacle_result,
                                     int64_t request_begin_us,
                                     RequestMetrics* request_metrics,
                                     const ImageServiceStageMetrics& stage_metrics,
@@ -97,6 +88,5 @@ namespace ris
         std::string depth_host_;
         uint16_t depth_port_ = 18080;
         std::unique_ptr<DepthEstimator> depth_estimator_;
-        ObstacleRiskAnalyzer risk_analyzer_;
     };
 } // namespace ris

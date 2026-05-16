@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROS_SETUP="/opt/ros/humble/setup.bash"
 WORKSPACE_SETUP="${ROOT_DIR}/ros2_ws/install/setup.bash"
-DEFAULT_CONFIG_FILE="${ROOT_DIR}/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/config/network_camera_obstacle_avoidance.yaml"
+DEFAULT_CONFIG_FILE="${ROOT_DIR}/ros2_ws/install/image_publisher_pkg/share/image_publisher_pkg/config/network_camera_depth_visualization.yaml"
 
 if [[ -n "${CONDA_PREFIX:-}" ]]; then
   echo "Detected active Conda environment; removing Conda paths for this ROS2 launch." >&2
@@ -66,7 +66,7 @@ echo "  OUTPUT_PATH=${OUTPUT_PATH:-<from YAML>}"
 echo "  DEPTH_OUTPUT_PATH=${DEPTH_OUTPUT_PATH:-<from YAML>}"
 
 cmd=(
-  ros2 launch image_publisher_pkg network_camera_obstacle_avoidance_launch.py
+  ros2 launch image_publisher_pkg network_camera_depth_visualization_launch.py
   config_file:="${CONFIG_FILE}"
 )
 

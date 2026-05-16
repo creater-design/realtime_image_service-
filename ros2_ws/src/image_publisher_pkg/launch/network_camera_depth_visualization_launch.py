@@ -49,11 +49,6 @@ def _create_nodes(context):
     _set_if_present(context, tcp_client_overrides, "depth_output_path")
     _set_if_present(context, tcp_client_overrides, "max_request_fps", cast=float)
 
-    safety_controller_overrides = {}
-    _set_if_present(context, safety_controller_overrides, "low_speed", cast=float)
-    _set_if_present(context, safety_controller_overrides, "medium_speed", cast=float)
-    _set_if_present(context, safety_controller_overrides, "stop_on_unknown", cast=bool)
-
     network_camera_node = Node(
         package="image_publisher_pkg",
         executable="network_camera_node",
@@ -70,15 +65,7 @@ def _create_nodes(context):
         parameters=[config_file, tcp_client_overrides],
     )
 
-    safety_controller_node = Node(
-        package="image_publisher_pkg",
-        executable="safety_controller_node",
-        name="safety_controller_node",
-        output="screen",
-        parameters=[config_file, safety_controller_overrides],
-    )
-
-    return [network_camera_node, tcp_client_node, safety_controller_node]
+    return [network_camera_node, tcp_client_node]
 
 
 def generate_launch_description():
@@ -88,7 +75,7 @@ def generate_launch_description():
             [
                 FindPackageShare("image_publisher_pkg"),
                 "config",
-                "network_camera_obstacle_avoidance.yaml",
+                "network_camera_depth_visualization.yaml",
             ]
         ),
         description="YAML parameter file used as the base configuration",
@@ -154,24 +141,6 @@ def generate_launch_description():
         description="Optional debug path for the latest depth visualization image",
     )
 
-    low_speed_arg = DeclareLaunchArgument(
-        "low_speed",
-        default_value="",
-        description="Optional linear speed override for low risk",
-    )
-
-    medium_speed_arg = DeclareLaunchArgument(
-        "medium_speed",
-        default_value="",
-        description="Optional linear speed override for medium risk",
-    )
-
-    stop_on_unknown_arg = DeclareLaunchArgument(
-        "stop_on_unknown",
-        default_value="",
-        description="Optional stop-on-unknown override",
-    )
-
     return LaunchDescription(
         [
             config_file_arg,
@@ -185,9 +154,6 @@ def generate_launch_description():
             max_request_fps_arg,
             output_path_arg,
             depth_output_path_arg,
-            low_speed_arg,
-            medium_speed_arg,
-            stop_on_unknown_arg,
             OpaqueFunction(function=_create_nodes),
         ]
     )

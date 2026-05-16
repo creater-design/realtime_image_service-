@@ -16,9 +16,3 @@ ros2_tcp_client_node:
     output_path: ""
     depth_output_path: ""
     max_request_fps: 60.0
-
-safety_controller_node:
-  ros__parameters:
-    low_speed: 0.20
-    medium_speed: 0.05
-    stop_on_unknown: true

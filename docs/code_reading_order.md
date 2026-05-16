@@ -1,259 +1,135 @@
-# 代码阅读顺序
+# Code Reading Order
 
-本文档用于快速理解当前项目的主链路、目录职责和关键代码入口。建议按顺序阅读，不要从 ROS2 节点或模型脚本直接跳进细节。
-
-## 1. 先看整体链路
-
-先读根目录 `README.md`，明确系统边界：
+这个项目现在定位为 ROS2 实时单目深度感知与可视化系统。建议按运行链路阅读：
 
 ```text
-手机 IP Webcam / RTSP
-  -> network_camera_node
-  -> /camera/image_raw
+network_camera_node
   -> ros2_tcp_client_node
-  -> image_server
+  -> TcpImageClient
+  -> Muduo image_server
+  -> DepthEstimator
   -> depth_server.py
-  -> ObstacleRiskAnalyzer
-  -> /image_service/depth_image, /obstacle_result, /cmd_vel
+  -> /image_service/processed_image
+  -> /image_service/depth_image
+  -> /image_service/result
+  -> /image_service/metrics
+  -> /image_service/status
 ```
 
-重点理解两个事实：
+## 1. ROS2 Camera Input
 
-- ROS2 负责节点编排、话题发布、参数管理和控制输出。
-- C++ Muduo 服务负责图像请求处理，Python 只承载 Depth Anything V2 推理。
-
-## 2. 看配置和启动入口
-
-先看这些文件，理解项目如何启动：
+文件：
 
 ```text
-config/image_server.yaml
-ros2_ws/src/image_publisher_pkg/config/network_camera_obstacle_avoidance.yaml
-ros2_ws/src/image_publisher_pkg/launch/network_camera_obstacle_avoidance_launch.py
-scripts/run_network_camera_pipeline.sh
-scripts/run_depth_server.sh
-scripts/run_image_server.sh
-scripts/export_depth_anything_onnx.py
-scripts/benchmark_depth_server.py
-```
-
-参数优先级是：
-
-```text
-C++ declare_parameter 默认值
-  -> YAML 配置文件
-  -> launch / shell 环境变量启动覆盖
-  -> ros2 param set 运行时动态修改
-```
-
-阅读重点：
-
-- YAML 是默认部署配置。
-- `config/image_server.yaml` 控制 `image_server` 端口、Depth 服务地址、障碍物检测 ROI 和风险阈值。
-- launch 负责启动三个 ROS2 节点。
-- shell 脚本负责 source ROS 环境、检查路径、规避 Conda 对 ROS2 Python 的影响。
-
-## 3. 看基础协议和数据格式
-
-再读公共 C++ 库：
-
-```text
-include/realtime_image_service/protocol.hpp
-src/common/protocol.cpp
-
-include/realtime_image_service/result_payload.hpp
-src/common/result_payload.cpp
-
-include/realtime_image_service/image_codec.hpp
-src/common/image_codec.cpp
-```
-
-阅读目标：
-
-- `protocol` 定义 TCP 包头、消息类型和请求 ID。
-- `result_payload` 定义服务端返回的 JSON、结果图、深度图如何打包。
-- `image_codec` 负责 OpenCV 图像和 JPEG 字节流互转。
-
-这部分是 ROS2 客户端和 Muduo 服务端之间的通信契约。
-
-## 4. 看模型服务边界
-
-阅读：
-
-```text
-scripts/depth_server.py
-include/realtime_image_service/depth_estimator.hpp
-src/common/depth_estimator.cpp
-```
-
-阅读目标：
-
-- `depth_server.py` 加载 Depth Anything V2，输入 JPEG，输出归一化深度图。
-- `DepthEstimator` 是 C++ 到 Python 模型服务的持久 TCP 客户端。
-- `image_server` 复用同一个 `DepthEstimator` 连接，失败时关闭并自动重连，避免每帧重复建立 TCP 连接。
-- C++ 主链路不直接依赖 PyTorch，模型环境和实时通信环境被隔离。
-- `depth_server.py` 支持 `pytorch` 和 `onnxruntime` 两种推理后端，部署细节见 `docs/inference_deployment.md`。
-
-## 5. 看 Muduo 图像服务端
-
-阅读：
-
-```text
-include/realtime_image_service/image_tcp_server.hpp
-include/realtime_image_service/image_server_config.hpp
-src/server/server_main.cpp
-src/server/image_server_config.cpp
-src/server/image_tcp_server.cpp
-```
-
-推荐从 `server_main.cpp` 看启动参数，再看 `ImageTcpServer::onMessage()` 和 `ImageTcpServer::HandlePacket()`。
-
-当前服务端主流程：
-
-```text
-DecodeRequestImage()
-  -> EstimateDepthForImage()
-  -> AnalyzeObstacleRisk()
-  -> BuildResponseArtifacts()
-  -> LogRequest()
-```
-
-阅读重点：
-
-- `onMessage()` 只负责拆 TCP 包和校验消息类型。
-- `HandlePacket()` 只表达业务流程。
-- 图像解码、深度估计、风险分析、响应构造已经拆成独立函数，便于单独测试和维护。
-- `server_main.cpp` 启动时先读取 `config/image_server.yaml`，再用命令行参数覆盖端口和 Depth 服务地址。
-- 默认 `DEPTH_RESPONSE_CODEC=jpg` 降低深度响应编码和传输开销；需要无损时可切回 `png`。
-
-## 6. 看障碍物风险算法
-
-阅读：
-
-```text
-include/realtime_image_service/obstacle_risk_analyzer.hpp
-src/common/obstacle_risk_analyzer.cpp
-include/realtime_image_service/result_json.hpp
-src/common/result_json.cpp
-```
-
-阅读目标：
-
-- `ObstacleRiskAnalyzer::Analyze()` 接收归一化深度图。
-- 默认 ROI 选取输入照片或视频帧的下面 50%。
-- ROI 比例来自 `ObstacleRiskConfig`，默认由 `config/image_server.yaml` 提供。
-- 风险判断基于有效深度比例、近距离比例、连通域面积和 5% 分位深度。
-- `result_json` 把风险结果和耗时指标输出成 JSON。
-
-注意：Depth Anything V2 输出相对深度，不是米制距离；这里做的是工程风险判断，不是真实距离测量。
-
-## 7. 看 ROS2 网络摄像头节点
-
-阅读：
-
-```text
-ros2_ws/src/image_publisher_pkg/include/image_publisher_pkg/network_camera_node.hpp
 ros2_ws/src/image_publisher_pkg/src/network_camera_node.cpp
+ros2_ws/src/image_publisher_pkg/include/image_publisher_pkg/network_camera_node.hpp
 ```
 
-阅读目标：
+重点看：
 
 - `cv::VideoCapture(stream_url)` 读取 HTTP MJPEG 或 RTSP。
 - 发布 `/camera/image_raw`。
-- 断流后按 `reconnect_interval` 重连。
-- 支持运行时动态修改 `stream_url`、`fps`、`image_width`、`image_height` 等参数。
+- 支持 `fps`、`image_width`、`image_height`、`reconnect_interval` 参数。
+- 断流后按间隔重连，避免忙等。
 
-## 8. 看 ROS2 TCP 客户端节点
+## 2. ROS2 TCP Client Node
 
-阅读：
+文件：
 
 ```text
 ros2_ws/src/image_publisher_pkg/src/ros2_tcp_client_node.cpp
 ```
 
-建议按函数顺序理解：
+重点看：
+
+- 订阅 `/camera/image_raw`。
+- 只缓存最新帧，避免模型慢时堆积旧图。
+- 后台线程按 `max_request_fps` 请求 C++ 图像服务。
+- 发布：
+  - `/image_service/processed_image`
+  - `/image_service/depth_image`
+  - `/image_service/result`
+  - `/image_service/metrics`
+  - `/image_service/status`
+
+## 3. TCP Client And Protocol
+
+文件：
 
 ```text
-OnImage()
-  -> SnapshotLatestFrame()
-  -> ProcessFrameWithServer()
-  -> PublishProcessingResult()
-  -> WriteDebugImages()
+include/realtime_image_service/tcp_image_client.hpp
+src/client/tcp_image_client.cpp
+include/realtime_image_service/protocol.hpp
+src/common/protocol.cpp
+src/common/result_payload.cpp
 ```
 
-阅读重点：
+重点看：
 
-- `OnImage()` 只缓存最新帧，不做慢推理。
-- 后台线程按 `max_request_fps` 限速取最新帧。
-- TCP 客户端复用连接，失败时关闭并等待下次重连。
-- 输出 `/image_service/processed_image`、`/image_service/depth_image`、`/obstacle_result`、`/image_service/metrics`、`/image_service/status`。
+- 自定义包头：magic、version、msg_type、payload_size、request_id。
+- TCP 是字节流，所以发送和接收都要处理半包/粘包。
+- 响应 payload 包含 JSON、处理图、深度图。
+- 客户端复用 TCP 连接，减少每帧 connect/close 开销。
 
-## 9. 看安全控制节点
+## 4. Muduo Image Server
 
-阅读：
+文件：
 
 ```text
-ros2_ws/src/image_publisher_pkg/src/safety_controller_node.cpp
+include/realtime_image_service/image_tcp_server.hpp
+src/server/image_tcp_server.cpp
+src/server/server_main.cpp
+src/server/image_server_config.cpp
 ```
 
-阅读目标：
+重点看：
 
-- 订阅 `/obstacle_result`。
-- 解析 `risk_level`。
-- 发布 `/cmd_vel`。
-- 支持动态修改 `low_speed`、`medium_speed`、`stop_on_unknown`。
+- Muduo 负责 TCP 连接和消息回调。
+- 服务端流程：解码图像 -> 调用深度服务 -> 渲染深度伪彩色图 -> 打包 JSON/图像。
+- `BuildDepthVisualization` 把归一化深度转成 Turbo colormap。
+- `BuildMetricsLog` 输出 decode、depth、encode、total 耗时。
 
-## 10. 调试时按这个顺序查
+## 5. Python Depth Service
 
-摄像头问题：
+文件：
 
-```bash
-python scripts/test_network_camera_stream.py --url "http://手机IP:端口/video"
-ros2 topic hz /camera/image_raw
+```text
+scripts/depth_server.py
+scripts/run_depth_server.sh
+scripts/export_depth_anything_onnx.py
+scripts/benchmark_depth_server.py
 ```
 
-模型问题：
+重点看：
 
-```bash
-DEPTH_INPUT_SIZE=224 DEPTH_DEVICE=cuda ./scripts/run_depth_server.sh
+- `depth_server.py` 是独立 TCP 推理服务。
+- 支持 `pytorch` 和 `onnxruntime` 后端。
+- 默认部署使用 `CUDAExecutionProvider`，CUDA 不可用时直接报错。
+- `benchmark_depth_server.py` 用于端到端压测推理延迟。
+
+## 6. Launch And Config
+
+文件：
+
+```text
+config/image_server.yaml
+ros2_ws/src/image_publisher_pkg/config/network_camera_depth_visualization.yaml
+ros2_ws/src/image_publisher_pkg/launch/network_camera_depth_visualization_launch.py
+scripts/run_image_server.sh
+scripts/run_network_camera_pipeline.sh
 ```
 
-服务端问题：
+重点看：
 
-```bash
-./scripts/run_image_server.sh
-ros2 topic echo /image_service/status --once
-```
+- `image_server.yaml` 配置 C++ 图像服务端口和 Python depth_server 地址。
+- ROS2 YAML 配置相机 URL、图像尺寸、服务端地址、最大请求 FPS。
+- launch 文件同时启动 `network_camera_node` 和 `ros2_tcp_client_node`。
 
-实时性问题：
+## 7. Main Interview Points
 
-```bash
-ros2 topic hz /camera/image_raw
-ros2 topic hz /image_service/depth_image
-
-ros2 param set /network_camera_node fps 60.0
-ros2 param set /ros2_tcp_client_node max_request_fps 60.0
-```
-
-如果当前机器或手机流达不到 60 FPS，先降到 30，再降到 15，保证结果不要堆积旧帧：
-
-```bash
-ros2 param set /network_camera_node fps 30.0
-ros2 param set /ros2_tcp_client_node max_request_fps 30.0
-ros2 topic hz /image_service/depth_image
-```
-
-## 11. 当前代码质量结论
-
-当前项目已经具备实习项目展示价值：
-
-- 主链路清晰，C++ 和 Python 职责分离。
-- ROS2 参数、YAML、launch、运行时动态参数已经打通。
-- 图像通信、深度推理、风险分析、控制输出都有明确边界。
-- 服务端主流程已拆分，阅读入口更清楚。
-
-仍可继续增强的方向：
-
-- 给 `protocol`、`result_payload`、`ObstacleRiskAnalyzer` 增加单元测试。
-- 继续补 TensorRT engine 后端或 Triton 推理服务部署。
-- 引入 clang-format、clang-tidy 和 CI 构建检查。
+- ROS2 C++ 节点、topic、launch、YAML 参数。
+- C++/Python 模型服务解耦。
+- Muduo TCP 服务端和自定义二进制协议。
+- 最新帧缓存和推理限频，避免实时链路积压。
+- ONNX Runtime CUDA 部署和 FPS/延迟统计。
+- Depth Anything V2 输出相对深度，系统重点是实时深度可视化，不声称输出真实米制距离。
